@@ -40,9 +40,6 @@ glm.spl$stn <- as.factor(glm.spl$stn)
 glm.spl$z.fact <- as.factor(as.integer(glm.spl$z.fact))
 
 #asreml fitted model
-#asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
-#                     splinepoints = list(z = seq(0, 250, 25)), rcov =~ stn:ar1(z.fact))
-
 asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
                      splinepoints = list(z = seq(0, 250, 25)), rcov =~ stn:ar1(z.fact))
 
