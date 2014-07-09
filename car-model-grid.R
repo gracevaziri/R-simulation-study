@@ -52,8 +52,8 @@ glm.spl$y.fact <- as.factor(as.integer(glm.spl$y))
 
 #---------------------------------- asreml -------------------------------------#
 
-asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn + y:z:sar(x.fact), data = glm.spl, 
-                     splinepoints = list(z = seq(0, 250, 25)), rcov =~ stn:ar1(z.fact))
+asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
+                     splinepoints = list(z = seq(0, 250, 25)), rcov =~ stn:ar1(z.fact) + sar(x.fact))
 asreml.fit <- update(asreml.fit)
 summary(asreml.fit)
 
