@@ -7,9 +7,8 @@ mu <- 50
 sd <- 40
 noise.sd <- 0.2 #noise sd for ar process
 stn.sd   <- 0.65 #sd for random station effect
-phi.true <- 0.6 #autocorrelation (ar1) down depths
-x.phi <- 0.6 #autocorrelation across x
-y.phi <- 0.6 #autocorrelation across y
+phi.true <- 0.55 #autocorrelation (ar1) down depths
+x.phi <- 0.65 #autocorrelation across x
 
 mult <- 1e3
 z <- seq(0, 250, 5) #explanatory variable (depth)
