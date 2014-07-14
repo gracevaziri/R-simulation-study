@@ -7,8 +7,8 @@ mu <- 50
 sd <- 40
 noise.sd <- 0.2 #noise sd for ar process
 stn.sd   <- 0.65 #sd for random station effect
-phi.true <- 0.6 #autocorrelation (ar1) down depths
-x.phi <- 0.6 #autocorrelation across x
+phi.true <- 0.7 #autocorrelation (ar1) down depths
+x.phi <- 0.55 #autocorrelation across x
 
 mult <- 1e3
 z <- seq(0, 250, 5) #explanatory variable (depth)
@@ -19,7 +19,7 @@ stn.re <- rnorm(n.station, mean = 0, sd = stn.sd) #station specific random effec
 x <- sort(rep(sort(rep(seq(1:sqrt(n.station)), length(rho))), sqrt(n.station)))
 y <- rep(sort(rep(seq(1:sqrt(n.station)), length(rho))), sqrt(n.station))
 
-#ar process down z (same for each station)
+#ar process down z 
 l.obs.z <- NULL
 for (i in c(1:n.station)) {
   l.temp <- log(rho) + arima.sim(n = length(rho), model = list(ar = phi.true), sd = noise.sd/2, 
@@ -28,17 +28,17 @@ for (i in c(1:n.station)) {
 }
 
 
-#isotropic gaussic process across x and y
+#isotropic ar1 process across x (for each y and z combination)
 x.cor <- NULL
 for (j in 1:(max(y)*length(z))){
   x.temp <- arima.sim(n = max(x), model = list(ar = x.phi), sd = noise.sd/2, innov=rnorm(max(x), mean=0, sd=noise.sd/2))   
   x.cor <- c(x.cor, x.temp)
 }
-
-#total observations
 x.cor.x <- rep(1:max(x), length(z)*max(y))
 x.cor.y <- rep(1:max(y), 1, each = length(z)*max(x))
-x.cor <- x.cor[order(x.cor.x, x.cor.y)]
+x.cor <- x.cor[order(x.cor.x, x.cor.y)] #sort to be the same as the rest of the data set
+
+#total observations
 l.obs <- l.obs.z + x.cor
 obs <- exp(l.obs)
 
