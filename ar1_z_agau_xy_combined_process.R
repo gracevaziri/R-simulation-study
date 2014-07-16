@@ -7,7 +7,7 @@ mu <- 50
 sd <- 40
 noise.sd <- 0.2 #noise sd for ar process
 stn.sd   <- 0.05 #sd for random station effect
-phi.true <- 0.4 #autocorrelation (ar1) down depths
+z.phi <- 0.4 #autocorrelation (ar1) down depths
 x.phi <- 0.35 #autocorrelation across x
 y.phi <- 0.6 #autocorrelation across y
 
@@ -50,7 +50,7 @@ for (k in 2:length(z)) {
       x.cor <- matrix(rep(cor.ij[, j], max(y)), ncol = max(x), byrow = T) #correlation matrix 
       y.cor <- matrix(rep(cor.ij.y[, i], max(x)), ncol = max(x))
       z.data <- matrix(r.noise[z.int == k], ncol = max(x))
-      t.cor[w] <- t.cor[y == i & z.int == (k - 1) & x == j]*phi.true + sum((x.cor*y.cor)*z.data) + rnorm(1, 0, noise.sd/2)
+      t.cor[w] <- t.cor[y == i & z.int == (k - 1) & x == j]*z.phi + sum((x.cor*y.cor)*z.data) + rnorm(1, 0, noise.sd/2)
     }
   }
 }
@@ -76,7 +76,7 @@ asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl,
 summary(asreml.fit)
 
 
-vals <- matrix(c(stn.sd, 1.5*noise.sd, phi.true, x.phi, y.phi, round(summary(asreml.fit)$varcomp[2,2]^0.5, 2), round(summary(asreml.fit)$varcomp[3,2]^0.5, 2), round(summary(asreml.fit)$varcomp[4,2], 2), round(summary(asreml.fit)$varcomp[5,2], 2), round(summary(asreml.fit)$varcomp[6,2], 2)), ncol = 2)
+vals <- matrix(c(stn.sd, 1.5*noise.sd, z.phi, x.phi, y.phi, round(summary(asreml.fit)$varcomp[2,2]^0.5, 2), round(summary(asreml.fit)$varcomp[3,2]^0.5, 2), round(summary(asreml.fit)$varcomp[4,2], 2), round(summary(asreml.fit)$varcomp[5,2], 2), round(summary(asreml.fit)$varcomp[6,2], 2)), ncol = 2)
 colnames(vals) <- c("true", "fitted")
 rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau")
 vals 
