@@ -26,7 +26,7 @@ y <- rep(sort(rep(seq(1:sqrt(n.station)), length(rho))), sqrt(n.station))
 t.cor <- rep(0, length(r.noise))
 for (i in 1:max(y)) {
   t.cor[y == i & z.int == 1] <- rnorm(max(y), 0, noise.sd)
-  t.cor[y == i & x == 1] <- rnorm(length(z), 0, noise.sd)
+  t.cor[y == i & x == 1] <- rnorm(length(z), 0, noise.sd) 
   for (k in 2:length(z)) {  
     for (j in 2:max(x)) {
       w <- which(y == i & z.int ==k & x == j)
@@ -41,14 +41,12 @@ l.obs <- rep(log(rho), n.station) + t.cor + rep(stn.re, 1, each = length(rho))
 obs <- exp(l.obs)
 
 #data frame
-glm.spl <- data.frame(obs, l.obs, rep(z, n.station), rep(c(1:n.station), 1, each = length(z)), x, y)
+glm.spl <- data.frame(obs, l.obs, rep(z, n.station), as.factor(rep(c(1:n.station), 1, each = length(z))), x, y)
 names(glm.spl) <- c("obs", "l.obs", "z", "stn", "x", "y")
-glm.spl$stn <- as.factor(glm.spl$stn)
 glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
 glm.spl$x.fact <- as.factor(as.integer(glm.spl$x))
 glm.spl$y.fact <- as.factor(as.integer(glm.spl$y))
-
-glm.spl <- glm.spl[order(glm.spl$z, glm.spl$y), ]
+glm.spl <- glm.spl[order(glm.spl$z, glm.spl$y), ] #sort by order of rcov structure
 
 
 #---------------------------------- asreml -------------------------------------#
