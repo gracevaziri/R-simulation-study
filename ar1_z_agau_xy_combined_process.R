@@ -8,8 +8,8 @@ sd <- 40
 noise.sd <- 0.2 #noise sd for ar process
 stn.sd   <- 0.05 #sd for random station effect
 z.phi <- 0.4 #autocorrelation (ar1) down depths
-x.phi <- 0.35 #autocorrelation across x
-y.phi <- 0.6 #autocorrelation across y
+x.phi <- 0.2 #autocorrelation across x
+y.phi <- 0.5 #autocorrelation across y
 
 mult <- 1e3
 z <- seq(0, 250, 5) #explanatory variable (depth)
@@ -80,6 +80,8 @@ vals <- matrix(c(stn.sd, 1.5*noise.sd, z.phi, x.phi, y.phi, round(summary(asreml
 colnames(vals) <- c("true", "fitted")
 rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau")
 vals 
+
+
 
 
 
