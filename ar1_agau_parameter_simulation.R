@@ -14,7 +14,7 @@ stn.sd   <- 0.05 #sd for random station effect
 z.phi <- 0.4 #autocorrelation (ar1) down depths
 x.phi <- 0.2 #autocorrelation across x
 y.phi <- 0.5 #autocorrelation across y
-beta_1 <- 4
+beta_1 <- 8
 
 mult <- 1e3
 z <- seq(0, 250, 5) #explanatory variable (depth)
@@ -22,7 +22,7 @@ z.int <- rep(c(1:length(z)), n.station) #explanatory variable (depth)
 temp <- exp(-z/100) #explanatory variable (temperature)
 
 stn <- rep(c(1:n.station), 1, each = length(z))
-rho <- mult*dnorm(z, mu, sd)/(pnorm(max(z), mu, sd) - pnorm(min(z), mu, sd)) + beta_1*temp
+rho <- mult*dnorm(z, mu, sd)/(pnorm(max(z), mu, sd) - pnorm(min(z), mu, sd))
 stn.re <- rnorm(n.station, mean = 0, sd = stn.sd) #station specific random effect
 
 #regular grid for 100 stations
@@ -64,7 +64,7 @@ for (k in 2:length(z)) {
 
 
 #total observations
-l.obs <- rep(log(rho), n.station) + t.cor + rep(stn.re, 1, each = length(rho))
+l.obs <- rep(log(rho), n.station) + t.cor + rep(stn.re, 1, each = length(rho)) + beta_1*rep(log(temp), n.station)
 obs <- exp(l.obs)
 
 #data frame
@@ -78,15 +78,20 @@ glm.spl <- glm.spl[order(glm.spl$z, glm.spl$x), ] #sort by order of rcov structu
 
 #---------------------------------- asreml -------------------------------------#
 
-asreml.fit <- asreml(fixed = l.obs ~ z + temp, random =~ spl(z) + stn, data = glm.spl, 
+asreml.fit <- asreml(fixed = l.obs ~ z + temp, random =~ spl(z) + spl(temp) + stn, data = glm.spl, 
                      splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x.fact, y.fact), maxIter = 50)
 summary(asreml.fit)
 
 
-vals <- matrix(c(stn.sd, 1.5*noise.sd, z.phi, x.phi, y.phi, beta_1, round(summary(asreml.fit)$varcomp[2,2]^0.5, 2), round(summary(asreml.fit)$varcomp[3,2]^0.5, 2), round(summary(asreml.fit)$varcomp[4,2], 2), round(summary(asreml.fit)$varcomp[5,2], 2), round(summary(asreml.fit)$varcomp[6,2], 2), coef(asreml.fit)$fixed[1]), ncol = 2)
+vals <- matrix(c(stn.sd, 1.5*noise.sd, z.phi, x.phi, y.phi, beta_1, round(summary(asreml.fit)$varcomp[3,2]^0.5, 2), round(summary(asreml.fit)$varcomp[4,2]^0.5, 2), round(summary(asreml.fit)$varcomp[5,2], 2), round(summary(asreml.fit)$varcomp[6,2], 2), round(summary(asreml.fit)$varcomp[7,2], 2), coef(asreml.fit)$fixed[1]), ncol = 2)
 colnames(vals) <- c("true", "fitted")
 rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau", "temp")
-vals 
+vals
+
+plot(l.obs[1:51])
+points(fitted(asreml.fit)[glm.spl$stn == 1], col = "red")
+
+
 
 
 
