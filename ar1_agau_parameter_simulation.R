@@ -88,10 +88,10 @@ colnames(vals) <- c("true", "fitted")
 rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau", "temp")
 vals
 
+
+#plot fitted against observed
 plot(l.obs[1:51])
 points(fitted(asreml.fit)[glm.spl$stn == 1], col = "red")
-
-
 
 
 
