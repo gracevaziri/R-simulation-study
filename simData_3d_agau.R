@@ -1,11 +1,22 @@
+#function to simulate a regular grid with anisotropic gaussian correlation in the x and y directions, 
+#ar1 correlation in the z direction
+#for use with batch_test_run.R
+#author: Lisa-Marie Harrison
+#date: 14/08/2014
+
 simData <- function (n.station, noise.sd, stn.sd, z.phi, x.phi, y.phi) {
   
+  
+  library(asreml)
+  library(mgcv)
+  library(fields)
   
   mu <- 50
   sd <- 40
   mult <- 1e3
   z <- seq(0, 250, 5) #explanatory variable (depth)
   z.int <- rep(c(1:length(z)), n.station) #explanatory variable (depth)
+  
   stn <- rep(c(1:n.station), 1, each = length(z))
   rho <- mult*dnorm(z, mu, sd)/(pnorm(max(z), mu, sd) - pnorm(min(z), mu, sd))
   stn.re <- rnorm(n.station, mean = 0, sd = stn.sd) #station specific random effect
@@ -17,32 +28,51 @@ simData <- function (n.station, noise.sd, stn.sd, z.phi, x.phi, y.phi) {
   #random noise matrix
   r.noise <- rnorm(length(x), 0, noise.sd)
   
-  #correlation matrix for x correlation
-  cor.ij <- matrix(0, ncol = max(x), nrow = max(x))
-  for (i in 1:max(x)) {
-    for (j in 1:max(x)) {
-      cor.ij[i, j] <- x.phi^((i - j)^2)
+  cols <- 10
+  rows <- 10
+  #create dataframe (xyz format)
+  X <- rep(1:10, each = rows)
+  Y <- rep(1:10, cols)
+  
+  # create a spatial autocorrelation signature
+  # coordinate list
+  coords <- data.frame(X, Y)
+  # distance matrix
+  
+  loc <- matrix(c(1:100), ncol = 10, byrow = T)
+  dist_x <- matrix(0, ncol = 100, nrow = 100)
+  for (i in 1:100) {
+    for (k in 1:100) {
+      w_current <- which(loc == i, arr.ind = TRUE)      
+      w_new <- which(loc == k, arr.ind = TRUE)
+      dist_x[i, k] <- (w_current[2] - w_new[2])^2    
     }
   }
   
-  #correlation matrix for y correlation
-  cor.ij.y <- matrix(0, ncol = max(y), nrow = max(y))
-  for (i in 1:max(y)) {
-    for (j in 1:max(y)) {
-      cor.ij.y[i, j] <- y.phi^((i - j)^2)
+  dist_y <- matrix(0, ncol = 100, nrow = 100)
+  for (i in 1:100) {
+    for (k in 1:100) {
+      w_current <- which(loc == i, arr.ind = TRUE)      
+      w_new <- which(loc == k, arr.ind = TRUE)
+      dist_y[i, k] <- (w_current[1] - w_new[1])^2     
     }
   }
   
-  #combined ar component
+  # create a correlation structure (exponential)
+  omega1 <- (x.phi^dist_x)*(y.phi^dist_y)
+  # calculate correlation weights, and invert weights matrix
+  weights <- chol(solve(omega1))
+  weights_inv <- solve(weights)
+  
+  #combined correlated error component
   t.cor <- rep(0, length(r.noise))
-  for (k in 2:length(z)) {  
+  for (k in 2:length(z)) {
+    z.data <- matrix(r.noise[z.int == k], ncol = max(x))
+    xy_error <- matrix(weights_inv %*% matrix(z.data, ncol = 1, byrow = T), ncol = 10, byrow = T)
     for (i in 1:max(y)) {
       for (j in 1:max(x)) {
         w <- which(y == i & z.int == k & x == j)
-        x.cor <- matrix(rep(cor.ij[, j], max(y)), ncol = max(x), byrow = T) #correlation matrix 
-        y.cor <- matrix(rep(cor.ij.y[, i], max(x)), ncol = max(x))
-        z.data <- matrix(r.noise[z.int == k], ncol = max(x))
-        t.cor[w] <- t.cor[y == i & z.int == (k - 1) & x == j]*z.phi + sum((x.cor*y.cor)*z.data) + rnorm(1, 0, noise.sd/2)
+        t.cor[w] <- t.cor[y == i & z.int == (k - 1) & x == j]*z.phi + xy_error[i, j]
       }
     }
   }
