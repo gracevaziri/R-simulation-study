@@ -9,7 +9,7 @@ z.phi    <- 0
 x.phi    <- 0
 y.phi    <- 0
 
-for (i in 1:1000) {
+for (i in 1:200) {
   
   glm.spl <- simData(n.station = 100, noise.sd = 0.2, stn.sd = 0.1, z.phi = 0.45,
                      x.phi = 0.3, y.phi = 0.4)
@@ -33,8 +33,8 @@ par(mfrow = c(2, 3))
 hist(stn.sd, main = "stn.sd")
 abline(v = 0.1, col = "red", lwd = 2)
 abline(v = mean(stn.sd), col = "blue", lwd = 2)
-hist(noise.sd, main = "noise.sd")
-abline(v = 0.3, col = "red", lwd = 2)
+hist(noise.sd, main = "noise.sd", xlim = c(0.19, 0.24))
+abline(v = 0.2, col = "red", lwd = 2)
 abline(v = mean(noise.sd), col = "blue", lwd = 2)
 hist(z.phi, main = "z.phi")
 abline(v = 0.45, col = "red", lwd = 2)
@@ -45,6 +45,8 @@ abline(v = mean(x.phi), col = "blue", lwd = 2)
 hist(y.phi, main = "y.phi")
 abline(v = 0.4, col = "red", lwd = 2)
 abline(v = mean(y.phi), col = "blue", lwd = 2)
+
+
 
 
 
