@@ -18,7 +18,7 @@ sd <- 40
 noise.sd <- 0.2 #noise sd for ar process
 stn.sd   <- 0.05 #sd for random station effect
 z.phi  <- 0.4 #ar1 autocorrelation down z
-xy.phi <- 0.7 #euclidian autocorrelation across x
+xy.phi <- 0.2 #euclidian autocorrelation across x
 
 mult <- 1e3
 z <- seq(0, 250, 5) #explanatory variable (depth)
@@ -51,14 +51,14 @@ gcd.hf <- function(lat1, long1, lat2, long2) {
 dist_x <- matrix(0, ncol = n.station, nrow = n.station)
 for (i in 1:n.station) {
   for (k in 1:n.station) {
-    dist_x[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[k]), deg2rad(long[i]))/100   
+    dist_x[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[k]), deg2rad(long[i]))   
   }
 }
 
 dist_y <- matrix(0, ncol = n.station, nrow = n.station)
 for (i in 1:n.station) {
   for (k in 1:n.station) {
-    dist_y[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[i]), deg2rad(long[k]))/100 
+    dist_y[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[i]), deg2rad(long[k]))
   }
 }
 
