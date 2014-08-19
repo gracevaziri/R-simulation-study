@@ -123,7 +123,7 @@ summary(asreml.fit)
 
 vals <- matrix(c(stn.sd, noise.sd, z.phi, x.phi, y.phi, round(summary(asreml.fit)$varcomp[2,2]^0.5, 2), round(summary(asreml.fit)$varcomp[3,2]^0.5, 2), round(summary(asreml.fit)$varcomp[4,2], 2), round(summary(asreml.fit)$varcomp[5,2], 2), round(summary(asreml.fit)$varcomp[6,2], 2)), ncol = 2)
 colnames(vals) <- c("true", "fitted")
-rownames(vals) <- c("stn", "noise", "z ar1", "xy ieuc")
+rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "yagau")
 vals
 
 
