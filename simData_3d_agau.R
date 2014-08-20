@@ -58,6 +58,9 @@ simData <- function (n.station, noise.sd, stn.sd, z.phi, x.phi, y.phi) {
     }
   }
   
+  adist_x <- as.matrix(as.dist(adist_x, diag = FALSE, upper = FALSE))
+  adist_y <- as.matrix(as.dist(adist_y, diag = FALSE, upper = FALSE))
+  
   # create a correlation structure (exponential)
   omega1 <- (x.phi^dist_x)*(y.phi^dist_y)
   # calculate correlation weights, and invert weights matrix
