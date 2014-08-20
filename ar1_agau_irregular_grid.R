@@ -19,7 +19,7 @@ noise.sd <- 0.2 #noise sd for ar process
 stn.sd   <- 0.05 #sd for random station effect
 z.phi  <- 0.4 #ar1 autocorrelation down z
 x.phi <- 0.5 #gaussian autocorrelation across x
-y.phi <- 0.2 #gaussian autocorrelation across y
+y.phi <- 0.4 #gaussian autocorrelation across y
 
 mult <- 1e3
 z <- seq(0, 250, 5) #explanatory variable (depth)
@@ -82,6 +82,10 @@ for (i in 1:n.station) {
   }
 }
 
+
+adist_x <- as.matrix(as.dist(adist_x, diag = FALSE, upper = FALSE))
+adist_y <- as.matrix(as.dist(adist_y, diag = FALSE, upper = FALSE))
+
 #create a correlation structure
 omega1 <- (x.phi^adist_x ) * (y.phi^adist_y)
 #calculate correlation weights, and invert weights matrix
@@ -117,13 +121,13 @@ glm.spl <- glm.spl[order(glm.spl$z, glm.spl$x, glm.spl$y), ] #sort by order of r
 #---------------------------------- asreml -------------------------------------#
 
 asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
-                     splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y), maxIter = 50)
+                     splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y))
 summary(asreml.fit)
 
 
 vals <- matrix(c(stn.sd, noise.sd, z.phi, x.phi, y.phi, round(summary(asreml.fit)$varcomp[2,2]^0.5, 2), round(summary(asreml.fit)$varcomp[3,2]^0.5, 2), round(summary(asreml.fit)$varcomp[4,2], 2), round(summary(asreml.fit)$varcomp[5,2], 2), round(summary(asreml.fit)$varcomp[6,2], 2)), ncol = 2)
 colnames(vals) <- c("true", "fitted")
-rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "yagau")
+rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau")
 vals
 
 
