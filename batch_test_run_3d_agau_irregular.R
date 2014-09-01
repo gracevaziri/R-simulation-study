@@ -12,11 +12,12 @@ y.phi    <- 0
 
 for (i in 1:200) {
   
-  glm.spl <- simData(noise.sd = 0.2, stn.sd = 0.1, z.phi = 0.4,
-                     x.phi = 0.3, y.phi = 0.4)
+  glm.spl <- simData(noise.sd = 0.2, stn.sd = 0.05, z.phi = 0.4,
+                     x.phi = 0.5, y.phi = 0.4)
   
   asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
-                       rcov=~ ar1(z.fact):agau(x, y))
+                    splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y))
+  
 
   #extract variance components
   stn.sd[i]   <- summary(asreml.fit)$varcomp[2,2]^0.5
@@ -32,18 +33,18 @@ for (i in 1:200) {
 #plot histogram of every variance component with fitted average and true values overlayed
 par(mfrow = c(2, 3))
 hist(stn.sd, main = "stn.sd")
-abline(v = 0.1, col = "red", lwd = 2)
+abline(v = 0.05, col = "red", lwd = 2)
 abline(v = mean(stn.sd), col = "blue", lwd = 2)
-hist(noise.sd, main = "noise.sd", xlim = c(0.19, 0.23))
+hist(noise.sd, main = "noise.sd")
 abline(v = 0.2, col = "red", lwd = 2)
 abline(v = mean(noise.sd), col = "blue", lwd = 2)
 hist(z.phi, main = "z.phi")
 abline(v = 0.4, col = "red", lwd = 2)
 abline(v = mean(z.phi), col = "blue", lwd = 2)
 hist(x.phi, main = "x.phi")
-abline(v = 0.3, col = "red", lwd = 2)
+abline(v = 0.5, col = "red", lwd = 2)
 abline(v = mean(x.phi), col = "blue", lwd = 2)
-hist(y.phi, main = "x.phi")
+hist(y.phi, main = "y.phi")
 abline(v = 0.4, col = "red", lwd = 2)
 abline(v = mean(y.phi), col = "blue", lwd = 2)
 
