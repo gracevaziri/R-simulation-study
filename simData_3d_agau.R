@@ -69,13 +69,18 @@ simData <- function (n.station, noise.sd, stn.sd, z.phi, x.phi, y.phi) {
   
   #combined correlated error component
   t.cor <- rep(0, length(r.noise))
-  for (k in 2:length(z)) {
+  for (k in 1:length(z)) {
     z.data <- matrix(r.noise[z.int == k], ncol = max(x))
     xy_error <- matrix(weights_inv %*% matrix(z.data, ncol = 1, byrow = T), ncol = 10, byrow = T)
     for (i in 1:max(y)) {
       for (j in 1:max(x)) {
         w <- which(y == i & z.int == k & x == j)
-        t.cor[w] <- t.cor[y == i & z.int == (k - 1) & x == j]*z.phi + xy_error[i, j]
+        #only use z.phi for depths > 1
+        if (k != 1) {
+          t.cor[w] <- t.cor[y == i & z.int == (k - 1) & x == j]*z.phi + xy_error[i, j]  
+        } else {
+          t.cor[w] <- xy_error[i, j]        
+        }
       }
     }
   }
