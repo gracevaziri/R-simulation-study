@@ -42,12 +42,13 @@ hist(z.phi, main = "z.phi")
 abline(v = 0.4, col = "red", lwd = 2)
 abline(v = mean(z.phi), col = "blue", lwd = 2)
 hist(x.phi, main = "x.phi")
-abline(v = 0.5, col = "red", lwd = 2)
+abline(v = 0.35, col = "red", lwd = 2)
 abline(v = mean(x.phi), col = "blue", lwd = 2)
 hist(y.phi, main = "y.phi")
 abline(v = 0.4, col = "red", lwd = 2)
 abline(v = mean(y.phi), col = "blue", lwd = 2)
 
+a <- cbind(stn.sd, noise.sd, z.phi, x.phi, y.phi)
 
-
+write.csv(a, "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data/sim_regular_grid.csv", row.names = F)
 
