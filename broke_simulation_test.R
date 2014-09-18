@@ -1,7 +1,14 @@
+#fits asreml model developed in simulation to BROKE-West data
+#uses the distance between stations rather than latitude and longitude
+#author: Lisa-Marie Harrison
+#date: 18/09/2014
+
 setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data")
 dat.cut <- read.csv(file = "rstnCTD.csv", header= T)
 library(asreml)
+library(nlme)
 
+#remove null values
 dat.cut$sal[dat.cut$sal == -9] <- NA
 dat.cut$temp[dat.cut$temp == -9] <- NA
 dat.cut$par[dat.cut$par == -9] <- NA
@@ -48,12 +55,12 @@ for (i in 1:n.station) {
 x <- dist_x[1, ]
 y <- dist_y[1, ]
 
-ice.dist <- dist$distToIce[dist$station %in% unique(dat.cut$stn)]
+
 
 
 #data frame
-glm.spl <- data.frame(log(dat.cut$fluoro - min(na.omit(dat.cut$fluoro))), dat.cut$profile.depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$profile.depth))), rep(y, 1, each = length(unique(dat.cut$profile.depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxy, dat.cut$ice, as.factor(dat.cut$water.mass), rep(ice.dist, 1, each = length(unique(dat.cut$profile.depth))))
-names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm", "ice.dist")
+glm.spl <- data.frame(log(dat.cut$fluoro - min(na.omit(dat.cut$fluoro))), dat.cut$profile.depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$profile.depth))), rep(y, 1, each = length(unique(dat.cut$profile.depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxy, dat.cut$ice, as.factor(dat.cut$water.mass))
+names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm")
 glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
 glm.spl$x.fact <- as.factor(glm.spl$x)
 glm.spl$y.fact <- as.factor(glm.spl$y)
@@ -67,11 +74,12 @@ glm.spl$par  <- scale(glm.spl$par)
 glm.spl$sal  <- scale(glm.spl$sal)
 glm.spl$oxy  <- scale(glm.spl$oxy)
 glm.spl$ice  <- scale(glm.spl$ice)
-glm.spl$ice.dist  <- scale(glm.spl$ice.dist)
+
+#------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par  + temp:wm + ice.dist, random =~ spl(z, 10) + spl(par, 10) + 
-                       + spl(temp, 10):wm + spl(ice.dist, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par  + temp:wm, random =~ spl(z, 10) + spl(par, 10) + 
+                       + spl(temp, 10):wm + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
@@ -85,20 +93,33 @@ plot(glm.spl$l.obs[glm.spl$stn == s])
 points(fitted(asreml.fit)[glm.spl$stn == s], col = "red")
 
 
+#fit the same asreml model but without the correlation structure
+fit <- asreml(fixed = l.obs ~ z + par  + temp:wm, random =~ spl(z, 10) + spl(par, 10) + 
+                       + spl(temp, 10):wm + stn, 
+                     data = glm.spl,
+                     na.method.X = "include", workspace = 50000000)
 
+#variogram of residuals for model with and without correlation strucutre
+d <- 62
+gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$gamma
+dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
+plot(dist, gamma)
+
+gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(fit)[glm.spl$stn == d])$gamma
+dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
+plot(dist, gamma)
+
+#likelihood ratio test to check whether adding correlation structure works
+1 - pchisq(2 * (asreml.fit$loglik - fit$loglik), 1) 
+
+
+
+#---------------------------------- FIT GAMM -----------------------------------------#
+
+#fit gamm to compare
 gamm.fit <- gamm(l.obs ~ s(z) + s(temp) + s(sal) + s(par) + s(oxy) + s(ice), random = list(stn =~ 1, x =~1, y =~1), 
                  data = glm.spl)
-
 summary(gamm.fit$gam)
-
-unique(glm.spl$stn)
-s <-   102 
-plot(glm.spl$l.obs[glm.spl$stn == s])
-points(fitted(gamm.fit$gam)[glm.spl$stn == s], col = "red")
-
-
-
-
 
 
 #plot fitted against observed
@@ -106,6 +127,7 @@ unique(glm.data$stn)
 s <-    14    
 plot(glm.data$profile.depth[glm.data$stn == s], glm.data$L.fluoro[glm.data$stn == s])
 points(glm.data$profile.depth[glm.data$stn == s], fitted(asreml.02)[glm.data$stn == s], col = "red")
+
 
 
 
