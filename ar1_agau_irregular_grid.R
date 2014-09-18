@@ -137,4 +137,31 @@ plot(l.obs[1:51])
 points(fitted(asreml.fit)[glm.spl$stn == 1], col = "red")
 
 
+#variogram of residuals across distance
+
+d <- 5
+gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$gamma
+dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
+plot(dist, gamma)
+
+
+
+fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
+                     splinepoints = list(z = seq(0, 250, 25)))
+
+
+gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(fit)[glm.spl$stn == d])$gamma
+dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
+plot(dist, gamma)
+
+#likelihood ratio test 
+1 - pchisq(2 * (asreml.fit$loglik - fit$loglik), 1) 
+
+
+
+
+
+
+
+
 
