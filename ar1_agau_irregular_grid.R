@@ -138,16 +138,15 @@ points(fitted(asreml.fit)[glm.spl$stn == 1], col = "red")
 
 
 #variogram of residuals across distance
-
-d <- 5
+d <- 5 #choose station
 gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$gamma
 dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
 plot(dist, gamma)
 
 
-
+#fit model without correlation structure for comparison
 fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
-                     splinepoints = list(z = seq(0, 250, 25)))
+                     splinepoints = list(z = seq(0, 250, 25)), aom = T)
 
 
 gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(fit)[glm.spl$stn == d])$gamma
@@ -156,6 +155,28 @@ plot(dist, gamma)
 
 #likelihood ratio test 
 1 - pchisq(2 * (asreml.fit$loglik - fit$loglik), 1) 
+
+#AIC 
+asreml.fit.AIC = -2*asreml.fit$loglik + 2*length(asreml.fit$gammas)
+fit.AIC = -2*fit$loglik + 2*length(fit$gammas)
+
+
+raw <- resid(asreml.fit)
+
+
+range(resid(fit, type="stdCond"))
+range(resid(asreml.fit, type="stdCond"))
+range(resid(asreml.fit))
+
+#calculate standardised residuals
+hasr = asr.obj$hat/asr.obj$sigma2 # all( hasr == hatvalues( lm1 ) ) # cbind( hasr, hatvalues( lm1 ) ) 
+rawRes = residuals(asr.obj, type = "response") 
+sigma2Res = sum(rawRes^2, na.rm = T) / asr.obj$nedf 
+varRes = sigma2Res * (1 - hasr) 
+stdRes = rawRes / sqrt(varRes)
+                        
+                        
+
 
 
 
