@@ -95,21 +95,7 @@ fit <- asreml(fixed = l.obs ~ z + par + temp:wm + ice , random =~ spl(z, 10) + s
                        spl(temp, 10):wm +  spl(ice, 10) + stn, 
                      data = glm.spl, na.method.X = "include", workspace = 50000000)
 
-b.int <- fit$coefficients$fixed["(Intercept)"]
-temp <- fit$coefficients$fixed[c(1:4)]
-ice <- fit$coefficients$fixed["ice"]
-par <- fit$coefficients$fixed["par"]
-z <- fit$coefficients$fixed["z"]
-wm <- as.numeric(glm.spl$wm) #water mass indicator variable
 
-n <- fit$coefficients$random
-z_spl <- n[which(substr(names(n), start = 1, stop = 5) %in% "spl(z")]
-par_spl <- n[which(substr(names(n), start = 1, stop = 5) %in% "spl(p")]
-ice_spl <- n[which(substr(names(n), start = 1, stop = 5) %in% "spl(i")]
-temp_spl <- n[which(substr(names(n), start = 1, stop = 5) %in% "spl(t")]
-
-pred.fixed <- b.int + z*depth + ice*i + par*light + temp[wm]*temp
-pred.random <- depth*1
 
 #----------------------- PREDICT VALUES AT OTHER STATIONS ---------------------#
 
