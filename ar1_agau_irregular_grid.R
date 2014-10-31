@@ -88,7 +88,7 @@ adist_x <- as.matrix(as.dist(adist_x, diag = FALSE, upper = FALSE))
 adist_y <- as.matrix(as.dist(adist_y, diag = FALSE, upper = FALSE))
 
 #create the correlation structure
-omega1 <- (x.phi^adist_x ) * (y.phi^adist_y)
+omega1 <- (x.phi^adist_x) * (y.phi^adist_y)
 
 #calculate correlation weights, and invert weights matrix
 weights <- chol(solve(omega1))
@@ -148,7 +148,7 @@ plot(dist, gamma)
 fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
                      splinepoints = list(z = seq(0, 250, 25)), aom = T)
 
-
+d = 10
 gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(fit)[glm.spl$stn == d])$gamma
 dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
 plot(dist, gamma)
@@ -161,26 +161,17 @@ asreml.fit.AIC = -2*asreml.fit$loglik + 2*length(asreml.fit$gammas)
 fit.AIC = -2*fit$loglik + 2*length(fit$gammas)
 
 
-raw <- resid(asreml.fit)
-
 
 range(resid(fit, type="stdCond"))
 range(resid(asreml.fit, type="stdCond"))
 range(resid(asreml.fit))
 
 #calculate standardised residuals
-hasr = asr.obj$hat/asr.obj$sigma2 # all( hasr == hatvalues( lm1 ) ) # cbind( hasr, hatvalues( lm1 ) ) 
-rawRes = residuals(asr.obj, type = "response") 
-sigma2Res = sum(rawRes^2, na.rm = T) / asr.obj$nedf 
+hasr = asreml.fit$hat/asreml.fit$sigma2 # all( hasr == hatvalues( lm1 ) ) # cbind( hasr, hatvalues( lm1 ) ) 
+rawRes = residuals(asreml.fit, type = "response") 
+sigma2Res = sum(rawRes^2, na.rm = T) / asreml.fit$nedf 
 varRes = sigma2Res * (1 - hasr) 
 stdRes = rawRes / sqrt(varRes)
-                        
-                        
-
-
-
-
-
 
 
 
