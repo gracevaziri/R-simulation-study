@@ -21,6 +21,14 @@ n.station <- length(unique(dat.cut$stn))
 lat  <- dat.cut$lat[duplicated(dat.cut$stn) == FALSE]
 long <- dat.cut$long[duplicated(dat.cut$stn) == FALSE]
 
+#find maximum fluorescence depth
+max.depth <- 0
+for (i in 1:length(unique(dat.cut$stn))) {
+  max.depth[i] <- which.max(dat.cut$l.fluoro[dat.cut$stn == unique(dat.cut$stn)[i]])
+}
+dat.cut$max.depth <- rep(unique(dat.cut$profile.depth)[max.depth], each = 125)
+
+
 #function to convert degrees to radians
 deg2rad <- function(deg) {
   return(deg*pi/180)
@@ -57,8 +65,8 @@ y <- dist_y[1, ]
 
 
 #data frame
-glm.spl <- data.frame(log(dat.cut$fluoro - min(na.omit(dat.cut$fluoro))), dat.cut$profile.depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$profile.depth))), rep(y, 1, each = length(unique(dat.cut$profile.depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxy, dat.cut$ice, as.factor(dat.cut$water.mass))
-names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm")
+glm.spl <- data.frame(log(dat.cut$fluoro - min(na.omit(dat.cut$fluoro))), dat.cut$profile.depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$profile.depth))), rep(y, 1, each = length(unique(dat.cut$profile.depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxy, dat.cut$ice, as.factor(dat.cut$water.mass), dat.cut$days.elapsed, dat.cut$start.time, dat.cut$max.depth, dat.cut$current)
+names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm", "day", "time", "max.depth", "current")
 glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
 glm.spl$x.fact <- as.factor(glm.spl$x)
 glm.spl$y.fact <- as.factor(glm.spl$y)
@@ -72,17 +80,19 @@ glm.spl$par  <- scale(glm.spl$par)
 glm.spl$sal  <- scale(glm.spl$sal)
 glm.spl$oxy  <- scale(glm.spl$oxy)
 glm.spl$ice  <- scale(glm.spl$ice)
+glm.spl$oxy  <- scale(glm.spl$oxy)
+glm.spl$max.depth  <- scale(glm.spl$max.depth)
+glm.spl$current  <- scale(glm.spl$current)
 
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + ice , random =~ spl(z, 10) + spl(par, 10) + 
-                        spl(temp, 10):wm +  spl(ice, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:diag(wm) + ice + oxy, random =~ spl(z, 10) + spl(par, 10) + 
+                        spl(temp, 10):diag(wm) +  spl(ice, 10) + spl(oxy, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
 summary(asreml.fit)
-
 
 
 #plot fitted against observed for all stations
@@ -91,10 +101,15 @@ lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.fit) ~ glm.spl$z | glm.spl$stn,
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
 #fit the same asreml model but without the correlation structure
-fit <- asreml(fixed = l.obs ~ z + par + temp:wm + ice , random =~ spl(z, 10) + spl(par, 10) + 
+fit <- asreml(fixed = l.obs ~ z + par + temp:wm + ice, random =~ spl(z, 10) + spl(par, 10) + 
                        spl(temp, 10):wm +  spl(ice, 10) + stn, 
-                     data = glm.spl, na.method.X = "include", workspace = 50000000)
+                     data = glm.spl,
+                     na.method.X = "include", workspace = 50000000)
 
+#plot fitted against observed for all stations
+lat.plot <- xyplot(glm.spl$l.obs + fitted(fit) ~ glm.spl$z | glm.spl$stn, 
+                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
 
 #----------------------- PREDICT VALUES AT OTHER STATIONS ---------------------#
@@ -103,6 +118,11 @@ fit <- asreml(fixed = l.obs ~ z + par + temp:wm + ice , random =~ spl(z, 10) + s
 #using depth, par, temperature, ice and watermass, predict l.fluoro using the model
 extra.dat <- read.csv(file = "ctd_data.csv", header = T)
 extra.dat <- extra.dat[extra.dat$stn %in% c(3, 13, 23, 33, 43, 53, 63, 73, 83, 93), ] #use 10 stations that weren't used to fit the model
+
+extra.dat$temp <- scale(extra.dat$temp)
+extra.dat$ice <- scale(extra.dat$ice)
+extra.dat$par <- scale(extra.dat$par)
+
 
 pval <- 0
 se <- 0
@@ -114,7 +134,7 @@ for(i in 1:nrow(extra.dat)) {
   pval[i] <- pred$predictions$pvals["predicted.value"]$predicted.value
   se[i] <- pred$predictions$pvals["standard.error"]$standard.error
     
-  if(i %% 100 == 0) print(i)
+  if(i %% 100 == 0) print(paste(Sys.time(), i))
   
 }  
 #write.csv(cbind(pval, se), "pred_with_correlation.csv", row.names = F)
@@ -127,6 +147,10 @@ lat.plot <- xyplot(extra.dat$l.fluoro + pval ~ extra.dat$profile.depth | extra.d
                    outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 title("Observed (blue) vs predicted (red) by station")
+
+
+
+
 
 
 #--------------------------- CHECK AUTOCORRELATION ----------------------------#
@@ -149,13 +173,23 @@ plot(dist, gamma)
 #---------------------------------- FIT GAMM -----------------------------------------#
 
 #fit gamm to compare
-gamm.fit <- gamm(l.obs ~ s(z) + s(temp) + s(sal) + s(par) + s(oxy) + s(ice), random = list(stn =~ 1, x =~1, y =~1), 
-                 data = glm.spl, correlation = corAR1(0.9, z ~ 1))
+gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(par) + s(ice), random = list(stn =~ 1, x =~1, y =~1), 
+                 data = glm.spl, correlation = corAR1(0.9, 1 ~ z | x | y))
 summary(gamm.fit$gam)
 
 
 #plot fitted against observed by station
 lat.plot <- xyplot(glm.spl$l.obs + fitted(gamm.fit$gam) ~ glm.spl$z | glm.spl$stn, outer = FALSE, type = "l")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
+
+
+
+#bubble plot of residuals by station
+res <- residuals(asreml.fit)[glm.spl$z == 50][order(glm.spl$stn[glm.spl$z == 50])]
+radius <- sqrt(abs(res) / pi)
+color <- rep("blue", length(radius))
+color[res < 0] <- "red"
+symbols(unique(dat.cut$long), unique(dat.cut$lat), circles=radius, inches = 0.35, fg = color)
+
 
 
