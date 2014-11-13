@@ -1,18 +1,20 @@
 #simulates an irregular grid with anisotropic gaussian correlation in the x and y directions, 
 #ar1 correlation in the z direction
 #uses BROKE-West ctd station coordinates
+#has covariates to make more realistic
+#author: Lisa-Marie Harrison
+#date: 12/11/2014
+
 library(asreml)
 library(mgcv)
 library(fields)
-dat <- read.csv("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data/stn_coordinates.csv", header = T)
+dat <- read.csv("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data/stn_coordinates.csv", header = T) #brokewest coordinates
 
 #get latitude and longitude for each station
 lat  <- dat$latitude
 long <- dat$longitude
 
 n.station <- length(lat)
-mu <- 50
-sd <- 40
 noise.sd <- 0.2 #noise sd
 stn.sd   <- 0.05 #sd for random station effect
 z.phi  <- 0.4 #ar1 autocorrelation down z
@@ -20,11 +22,27 @@ x.phi <- 0.5 #gaussian autocorrelation across x
 y.phi <- 0.4 #gaussian autocorrelation across y
 
 mult <- 1e3
-z <- seq(0, 250, 5) #explanatory variable (depth)
+z <- seq(5, 250, 5) #explanatory variable (depth)
 z.int <- rep(c(1:length(z)), n.station) #explanatory variable (depth)
-stn <- rep(c(1:n.station), 1, each = length(z))
-rho <- mult*dnorm(z, mu, sd)/(pnorm(max(z), mu, sd) - pnorm(min(z), mu, sd))
+stn <- rep(c(1:n.station), 1, each = length(z)) #station number
 stn.re <- rnorm(n.station, mean = 0, sd = stn.sd) #station specific random effect
+
+#------------------------- ADD EXPLANATORY VARIABLES --------------------------#
+
+#par = exponential distribution pdf
+lambda <- 1.5
+par <- lambda*exp(-lambda*(z/50))
+
+#temperature = weibull distribution pdf
+k = 1.5
+lam <- 2
+temp <- (k/lam)*((z/50)/lam)^(k - 1) * exp(-((z/50)/lam)^k)
+
+#calculate response variable
+rho <- 10 * par * temp ##should this be additive or multiplicative?
+
+
+#---------------------------- CORRELATED ERRORs -------------------------------#
 
 #random noise matrix
 r.noise <- rnorm(length(lat)*length(z), 0, noise.sd)
@@ -105,74 +123,32 @@ for (k in 2:length(z)) {
   }
 }
 
+#------------------------ CALCULATE OBSERVED VALUES ---------------------------#
+
 #calculate the total observations
 l.obs <- rep(log(rho), n.station) + t.cor + rep(stn.re, 1, each = length(rho))
 obs <- exp(l.obs)
 
-
 #data frame
-glm.spl <- data.frame(obs, l.obs, rep(z, n.station), as.factor(rep(c(1:n.station), 1, each = length(z))), rep(x, 1, each = 51), rep(y, 1, each = 51))
-names(glm.spl) <- c("obs", "l.obs", "z", "stn", "x", "y")
+glm.spl <- data.frame(obs, l.obs, rep(z, n.station), as.factor(rep(c(1:n.station), 1, each = length(z))), rep(x, 1, each = length(z)), rep(y, 1, each = length(z)), rep(par, n.station), rep(temp, n.station))
+names(glm.spl) <- c("obs", "l.obs", "z", "stn", "x", "y", "par", "temp")
 glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
 glm.spl$x.fact <- as.factor(glm.spl$x)
 glm.spl$y.fact <- as.factor(glm.spl$y)
 glm.spl <- glm.spl[order(glm.spl$z, glm.spl$x, glm.spl$y), ] #sort by order of rcov structure
 
 
-#---------------------------------- asreml -------------------------------------#
+#---------------------------------- ASREML ------------------------------------#
 
-asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
-                     splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y))
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp, random =~ spl(z) + spl(par) + spl(temp) + stn, data = glm.spl, 
+                     rcov=~ ar1(z.fact):agau(x, y))
 summary(asreml.fit)
 
-
-vals <- matrix(c(stn.sd, noise.sd, z.phi, x.phi, y.phi, round(summary(asreml.fit)$varcomp[2,2]^0.5, 2), round(summary(asreml.fit)$varcomp[3,2]^0.5, 2), round(summary(asreml.fit)$varcomp[4,2], 2), round(summary(asreml.fit)$varcomp[5,2], 2), round(summary(asreml.fit)$varcomp[6,2], 2)), ncol = 2)
+#check estimates against actual values
+vals <- matrix(c(stn.sd, noise.sd, z.phi, x.phi, y.phi, round(summary(asreml.fit)$varcomp[4,2]^0.5, 2), round(summary(asreml.fit)$varcomp[5,2]^0.5, 2), round(summary(asreml.fit)$varcomp[6,2], 2), round(summary(asreml.fit)$varcomp[7,2], 2), round(summary(asreml.fit)$varcomp[8,2], 2)), ncol = 2)
 colnames(vals) <- c("true", "fitted")
 rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau")
 vals
-
-
-#plot fitted against observed
-plot(l.obs[1:51])
-points(fitted(asreml.fit)[glm.spl$stn == 1], col = "red")
-
-
-#variogram of residuals across distance
-d <- 5 #choose station
-gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$gamma
-dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
-plot(dist, gamma)
-
-
-#fit model without correlation structure for comparison
-fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
-              splinepoints = list(z = seq(0, 250, 25)), aom = T)
-
-d = 10
-gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(fit)[glm.spl$stn == d])$gamma
-dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
-plot(dist, gamma)
-
-#likelihood ratio test 
-1 - pchisq(2 * (asreml.fit$loglik - fit$loglik), 1) 
-
-#AIC 
-asreml.fit.AIC = -2*asreml.fit$loglik + 2*length(asreml.fit$gammas)
-fit.AIC = -2*fit$loglik + 2*length(fit$gammas)
-
-
-
-range(resid(fit, type="stdCond"))
-range(resid(asreml.fit, type="stdCond"))
-range(resid(asreml.fit))
-
-#calculate standardised residuals
-hasr = asreml.fit$hat/asreml.fit$sigma2 # all( hasr == hatvalues( lm1 ) ) # cbind( hasr, hatvalues( lm1 ) ) 
-rawRes = residuals(asreml.fit, type = "response") 
-sigma2Res = sum(rawRes^2, na.rm = T) / asreml.fit$nedf 
-varRes = sigma2Res * (1 - hasr) 
-stdRes = rawRes / sqrt(varRes)
-
 
 
 
