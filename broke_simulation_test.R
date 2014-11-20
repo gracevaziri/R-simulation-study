@@ -4,17 +4,23 @@
 #date: 18/09/2014
 
 setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data")
-dat.cut <- read.csv(file = "rstnCTD.csv", header= T)
+dat.cut <- read.csv(file = "procCTD.csv", header= T)
 library(asreml)
 library(nlme)
 library(lattice)
 library(mgcv)
+
+names(dat.cut) <- c("survey", "stn", "lat", "long", "start.time", "end.time", "depth", "transmittance", "cond", "temp", "sal", "par", "oxygen", "fluoro", "x2", "ice", "wm")
 
 #remove null values
 dat.cut$sal[dat.cut$sal == -9] <- NA
 dat.cut$temp[dat.cut$temp == -9] <- NA
 dat.cut$par[dat.cut$par == -9] <- NA
 dat.cut$fluoro[dat.cut$fluoro == -9] <- NA
+
+#compute log transformed fluoro values
+dat.cut$l.fluoro <- log(dat.cut$fluoro)
+dat.cut$l.fluoro[is.nan(dat.cut$l.fluoro)] <- NA
 
 #get latitude and longitude for each station
 n.station <- length(unique(dat.cut$stn))
@@ -65,8 +71,8 @@ y <- dist_y[1, ]
 
 
 #data frame
-glm.spl <- data.frame(log(dat.cut$fluoro - min(na.omit(dat.cut$fluoro))), dat.cut$profile.depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$profile.depth))), rep(y, 1, each = length(unique(dat.cut$profile.depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxy, dat.cut$ice, as.factor(dat.cut$water.mass), dat.cut$days.elapsed, dat.cut$start.time, dat.cut$max.depth, dat.cut$current)
-names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm", "day", "time", "max.depth", "current")
+glm.spl <- data.frame(dat.cut$l.fluoro, dat.cut$depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$depth))), rep(y, 1, each = length(unique(dat.cut$depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxygen, dat.cut$ice, as.factor(dat.cut$wm))
+names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm")
 glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
 glm.spl$x.fact <- as.factor(glm.spl$x)
 glm.spl$y.fact <- as.factor(glm.spl$y)
@@ -81,14 +87,12 @@ glm.spl$sal  <- scale(glm.spl$sal)
 glm.spl$oxy  <- scale(glm.spl$oxy)
 glm.spl$ice  <- scale(glm.spl$ice)
 glm.spl$oxy  <- scale(glm.spl$oxy)
-glm.spl$max.depth  <- scale(glm.spl$max.depth)
-glm.spl$current  <- scale(glm.spl$current)
 
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:diag(wm) + ice + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                        spl(temp, 10):diag(wm) +  spl(ice, 10) + spl(oxy, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:diag(wm) + oxy, random =~ spl(z, 10) + spl(par, 10) + 
+                        spl(temp, 10):diag(wm) + spl(oxy, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
@@ -185,11 +189,136 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 
 
 #bubble plot of residuals by station
-res <- residuals(asreml.fit)[glm.spl$z == 50][order(glm.spl$stn[glm.spl$z == 50])]
+res <- residuals(asreml.fit)[glm.spl$z == 100][order(glm.spl$stn[glm.spl$z == 100])]
 radius <- sqrt(abs(res) / pi)
 color <- rep("blue", length(radius))
 color[res < 0] <- "red"
-symbols(unique(dat.cut$long), unique(dat.cut$lat), circles=radius, inches = 0.35, fg = color)
+symbols(long, lat, circles=radius, inches = 0.1, fg = color)
+
+
+#-------------------------- AVERAGE PREDICTIONS -------------------------------#
+
+par(mfrow = c(2, 2))
+
+#temperature
+pred <- predict(asreml.fit, classify = "temp:z", levels = list("z" = 50))
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+temp <- pred$predictions$pvals["temp"]$temp
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+plot(temp, ci[, 2], xlab = "temperature (degrees celcius)", ylab = "predicted fluoro", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+points(temp, ci[, 1], type = "l", lty = 2)
+points(temp, ci[, 3], type = "l", lty = 2)
+
+
+#par
+pred <- predict(asreml.fit, classify = "par:z", levels = list("z" = 50))
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+par <- pred$predictions$pvals["par"]$par
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+plot(par, ci[, 2], xlab = "par", ylab = "predicted fluoro", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+points(par, ci[, 1], type = "l", lty = 2)
+points(par, ci[, 3], type = "l", lty = 2)
+
+
+#oxygen
+pred <- predict(asreml.fit, classify = "oxy:z", levels = list("z" = 50))
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+oxy <- pred$predictions$pvals["oxy"]$oxy
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+plot(oxy, ci[, 2], xlab = "dissolved oxygen", ylab = "predicted fluoro", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+points(oxy, ci[, 1], type = "l", lty = 2)
+points(oxy, ci[, 3], type = "l", lty = 2)
+
+
+
+#depth
+pred <- predict(asreml.fit, classify = "z")
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+z <- pred$predictions$pvals["z"]$z
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+plot(z, ci[, 2], xlab = "depth (m)", ylab = "predicted fluoro", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+points(z, ci[, 1], type = "l", lty = 2)
+points(z, ci[, 3], type = "l", lty = 2)
+
+
+#plot a CTD vertical profile
+par(mfrow = c(1, 3))
+
+plot(dat.cut$temp[dat.cut$stn == 2], -dat.cut$depth[dat.cut$stn == 2], type = "l",
+     xlab = "temperature (degrees celcius)", ylab = "depth (m)")
+title("Temperature")
+plot(dat.cut$oxygen[dat.cut$stn == 2], -dat.cut$depth[dat.cut$stn == 2], type = "l",
+     xlab = "dissolved oxygen", ylab = "")
+title("Dissolved Oxygen")
+plot(dat.cut$par[dat.cut$stn == 2], -dat.cut$depth[dat.cut$stn == 2], type = "l",
+     xlab = "par", ylab = "")
+title("PAR")
+
+#plot location of BROKE-West station with station number overlayed
+plot(long, lat, col = "white", xlab = "longitude", ylab = "latitude")
+text(long, lat, c(2:118))
+title("location of BROKE-West CTD stations")
+
+
+#------------------------ CLIMATE CHANGE PREDICTIONS --------------------------#
+
+
+#normal prediction for station 2
+ci <- matrix(NA, nrow = 125, ncol = 3)
+for (i in 1:length(glm.spl$z[glm.spl$stn == 2])){
+  pred <- predict(asreml.fit, classify = "temp:z:stn", levels = list("stn" = 1, "temp" = glm.spl$temp[glm.spl$stn == 2][i], "z" = i))
+  pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+  se <- pred$predictions$pvals["standard.error"]$standard.error
+  
+  logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+  ci[i, ] <- exp(logci)
+}
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+
+#temperature increase of 2 degrees at station 2
+ci2 <- matrix(NA, nrow = 125, ncol = 3)
+for (i in 1:length(glm.spl$z[glm.spl$stn == 2])){
+  pred <- predict(asreml.fit, classify = "temp:z:stn", levels = list("stn" = 1, "temp" = glm.spl$temp[glm.spl$stn == 2][i] + 2, "z" = i))
+  pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+  se <- pred$predictions$pvals["standard.error"]$standard.error
+  
+  logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+  ci2[i, ] <- exp(logci)
+}
+dimnames(ci2)[[2]]<-c("lower95", "est", "upper95")
+
+#plot before and after
+plot(glm.spl$z[glm.spl$stn == 2], ci[, 2], xlab = "depth (m)", ylab = "predicted fluoro", 
+     type = "l", ylim = c(min(na.omit(ci[, 1])), 1), lwd = 2)
+points(glm.spl$z[glm.spl$stn == 2], ci2[, 2], type = "l", col = "red", lwd = 2)
+legend(150, 1, c("Current station 2 prediction", "2 degrees celcius temperature increase"), col = c("black", "red"), lwd = 2, bty = "n")
+
+
 
 
 
