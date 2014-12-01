@@ -152,3 +152,22 @@ vals
 
 
 
+#plot observed vs fitted
+plot(glm.spl$z[glm.spl$stn == 1], exp(glm.spl$l.obs[glm.spl$stn == 1]), xlab = "depth (m)", ylab = "fluorescence", pch = 19)
+points(glm.spl$z[glm.spl$stn == 1], exp(fitted(asreml.fit)[glm.spl$stn == 1]), col = "red", type = "l", lwd = 2)
+legend("topright", c("observed", "fitted"), col = c("black", "red"), pch = c(19, NA), lwd = c(NA, 2), bty = "n")
+
+
+plot(glm.spl$z[glm.spl$stn == 1], rho, xlab = "depth (m)", ylab = "fluorescence", pch = 19)
+points(glm.spl$z[glm.spl$stn == 1], exp(fitted(asreml.fit)[glm.spl$stn == 1]), col = "red", type = "l", lwd = 2)
+legend("topright", c("actual fluoro", "fitted"), col = c("black", "red"), pch = c(19, NA), lwd = c(NA, 2), bty = "n")
+
+
+
+
+
+
+
+
+
+
