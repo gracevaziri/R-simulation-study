@@ -27,6 +27,12 @@ n.station <- length(unique(dat.cut$stn))
 lat  <- dat.cut$lat[duplicated(dat.cut$stn) == FALSE]
 long <- dat.cut$long[duplicated(dat.cut$stn) == FALSE]
 
+#plot location of BROKE-West station with station number overlayed
+plot(long, lat, col = "white", xlab = "longitude", ylab = "latitude")
+text(long, lat, c(2:118))
+title("location of BROKE-West CTD stations")
+
+
 #find maximum fluorescence depth
 max.depth <- 0
 for (i in 1:length(unique(dat.cut$stn))) {
@@ -91,8 +97,8 @@ glm.spl$oxy  <- scale(glm.spl$oxy)
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:diag(wm) + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                        spl(temp, 10):diag(wm) + spl(oxy, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
+                        spl(temp, 10):wm + spl(oxy, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
@@ -104,58 +110,17 @@ lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.fit) ~ glm.spl$z | glm.spl$stn,
                    outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
-#fit the same asreml model but without the correlation structure
-fit <- asreml(fixed = l.obs ~ z + par + temp:wm + ice, random =~ spl(z, 10) + spl(par, 10) + 
-                       spl(temp, 10):wm +  spl(ice, 10) + stn, 
-                     data = glm.spl,
-                     na.method.X = "include", workspace = 50000000)
 
-#plot fitted against observed for all stations
-lat.plot <- xyplot(glm.spl$l.obs + fitted(fit) ~ glm.spl$z | glm.spl$stn, 
-                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
-update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
+#plot fitted against observed for 3 stations
+s <- sample(c(2:118), 3, replace = F)
+lat.plot <- xyplot(glm.spl$l.obs[glm.spl$stn %in% s] + fitted(asreml.fit)[glm.spl$stn %in% s] ~ glm.spl$z[glm.spl$stn %in% s] | glm.spl$stn[glm.spl$stn %in% s], 
+                   outer = FALSE, type = "l", xlab = list("depth (m)", cex = 2), ylab = list("l.fluoro", cex = 2), scales = list(cex = 2), cex.axis = 2)
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")), lwd = 2,  cex.axis = 2, cex.lab = 2)
 
-
-#----------------------- PREDICT VALUES AT OTHER STATIONS ---------------------#
-
-#predict at each point using parameter values for other stations to test extrapolation
-#using depth, par, temperature, ice and watermass, predict l.fluoro using the model
-extra.dat <- read.csv(file = "ctd_data.csv", header = T)
-extra.dat <- extra.dat[extra.dat$stn %in% c(3, 13, 23, 33, 43, 53, 63, 73, 83, 93), ] #use 10 stations that weren't used to fit the model
-
-extra.dat$temp <- scale(extra.dat$temp)
-extra.dat$ice <- scale(extra.dat$ice)
-extra.dat$par <- scale(extra.dat$par)
-
-
-pval <- 0
-se <- 0
-for(i in 1:nrow(extra.dat)) {
-
-  capture.output({
-    pred <- predict(asreml.fit, classify = "wm:ice:par:temp:z", levels = list("z" = extra.dat$profile.depth[i], "temp" = extra.dat$temp[i], "ice" = extra.dat$ice[i], "par" = extra.dat$par[i], "wm" = extra.dat$water_mass[i]))
-  }, file = tempfile())
-  pval[i] <- pred$predictions$pvals["predicted.value"]$predicted.value
-  se[i] <- pred$predictions$pvals["standard.error"]$standard.error
-    
-  if(i %% 100 == 0) print(paste(Sys.time(), i))
-  
-}  
-#write.csv(cbind(pval, se), "pred_with_correlation.csv", row.names = F)
-
-#compare predicted values to actual values
-plot(extra.dat$l.fluoro, pval, xlab = "observed", ylab = "predicted")
-title("Observed vs predicted for extra stations")
-
-lat.plot <- xyplot(extra.dat$l.fluoro + pval ~ extra.dat$profile.depth | extra.dat$stn, 
-                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
-update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
-title("Observed (blue) vs predicted (red) by station")
-
-
-
-
-
+#convert back to fluoro
+lat.plot <- xyplot(exp(glm.spl$l.obs) + exp(fitted(asreml.fit)) ~ glm.spl$z | glm.spl$stn, 
+                   outer = FALSE, type = "l", xlab = list("depth (m)", cex = 2), ylab = list("l.fluoro", cex = 2), scales = list(cex = 2), cex.axis = 2)
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")), lwd = 3,  cex.axis = 2, cex.lab = 2)
 
 #--------------------------- CHECK AUTOCORRELATION ----------------------------#
 
@@ -201,7 +166,7 @@ symbols(long, lat, circles=radius, inches = 0.1, fg = color)
 par(mfrow = c(2, 2))
 
 #temperature
-pred <- predict(asreml.fit, classify = "temp:z", levels = list("z" = 50))
+pred <- predict(asreml.fit, classify = "temp")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
 temp <- pred$predictions$pvals["temp"]$temp
 se <- pred$predictions$pvals["standard.error"]$standard.error
@@ -210,14 +175,14 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(temp, ci[, 2], xlab = "temperature (degrees celcius)", ylab = "predicted fluoro", 
-     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+plot(temp, ci[, 2], xlab = "temperature", ylab = "", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(temp, ci[, 1], type = "l", lty = 2)
 points(temp, ci[, 3], type = "l", lty = 2)
 
 
 #par
-pred <- predict(asreml.fit, classify = "par:z", levels = list("z" = 50))
+pred <- predict(asreml.fit, classify = "par")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
 par <- pred$predictions$pvals["par"]$par
 se <- pred$predictions$pvals["standard.error"]$standard.error
@@ -226,14 +191,14 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(par, ci[, 2], xlab = "par", ylab = "predicted fluoro", 
-     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+plot(par, ci[, 2], xlab = "par", ylab = "", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(par, ci[, 1], type = "l", lty = 2)
 points(par, ci[, 3], type = "l", lty = 2)
 
 
 #oxygen
-pred <- predict(asreml.fit, classify = "oxy:z", levels = list("z" = 50))
+pred <- predict(asreml.fit, classify = "oxy")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
 oxy <- pred$predictions$pvals["oxy"]$oxy
 se <- pred$predictions$pvals["standard.error"]$standard.error
@@ -242,8 +207,8 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(oxy, ci[, 2], xlab = "dissolved oxygen", ylab = "predicted fluoro", 
-     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+plot(oxy, ci[, 2], xlab = "dissolved oxygen", ylab = "", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(oxy, ci[, 1], type = "l", lty = 2)
 points(oxy, ci[, 3], type = "l", lty = 2)
 
@@ -259,29 +224,22 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(z, ci[, 2], xlab = "depth (m)", ylab = "predicted fluoro", 
-     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2)
+plot(z, ci[, 2], xlab = "depth (m)", ylab = "", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(z, ci[, 1], type = "l", lty = 2)
 points(z, ci[, 3], type = "l", lty = 2)
 
 
-#plot a CTD vertical profile
+#-------------------------- CTD VERTICAL PROFILE ------------------------------#
+
 par(mfrow = c(1, 3))
 
 plot(dat.cut$temp[dat.cut$stn == 2], -dat.cut$depth[dat.cut$stn == 2], type = "l",
-     xlab = "temperature (degrees celcius)", ylab = "depth (m)")
+     xlab = "temperature", ylab = "depth (m)", lwd = 2, cex.lab = 1.5)
 title("Temperature")
 plot(dat.cut$oxygen[dat.cut$stn == 2], -dat.cut$depth[dat.cut$stn == 2], type = "l",
-     xlab = "dissolved oxygen", ylab = "")
+     xlab = "dissolved oxygen", ylab = "", lwd = 2, cex.lab = 1.5)
 title("Dissolved Oxygen")
-plot(dat.cut$par[dat.cut$stn == 2], -dat.cut$depth[dat.cut$stn == 2], type = "l",
-     xlab = "par", ylab = "")
-title("PAR")
-
-#plot location of BROKE-West station with station number overlayed
-plot(long, lat, col = "white", xlab = "longitude", ylab = "latitude")
-text(long, lat, c(2:118))
-title("location of BROKE-West CTD stations")
 
 
 #------------------------ CLIMATE CHANGE PREDICTIONS --------------------------#
