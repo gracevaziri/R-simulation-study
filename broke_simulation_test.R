@@ -1,5 +1,6 @@
 #fits asreml model developed in simulation to BROKE-West data
 #uses the distance between stations rather than latitude and longitude
+#used in HDR conference talk in December 2014
 #author: Lisa-Marie Harrison
 #date: 18/09/2014
 
