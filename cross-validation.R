@@ -1,84 +1,74 @@
+#runs cross validation using BROKE-West data
 #fits asreml model developed in simulation to BROKE-West data
-#uses the distance between stations rather than latitude and longitude
-#used in HDR conference talk in December 2014
 #author: Lisa-Marie Harrison
-#date: 18/09/2014
+#date: 05/02/2015
 
 setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data")
-dat.cut <- read.csv(file = "procCTD.csv", header= T)
+dat <- read.csv(file = "procCTD.csv", header= T)
 library(asreml)
-library(nlme)
 library(lattice)
-library(mgcv)
 
-names(dat.cut) <- c("survey", "stn", "lat", "long", "start.time", "end.time", "depth", "transmittance", "cond", "temp", "sal", "par", "oxygen", "fluoro", "x2", "ice", "wm")
+#simplify names
+names(dat) <- c("survey", "stn", "lat", "long", "start.time", "end.time", "depth", "transmittance", "cond", "temp", "sal", "par", "oxygen", "fluoro", "x2", "ice", "wm")
 
 #remove null values
-dat.cut$sal[dat.cut$sal == -9] <- NA
-dat.cut$temp[dat.cut$temp == -9] <- NA
-dat.cut$par[dat.cut$par == -9] <- NA
-dat.cut$fluoro[dat.cut$fluoro == -9] <- NA
+dat$sal[dat$sal == -9] <- NA
+dat$temp[dat$temp == -9] <- NA
+dat$par[dat$par == -9] <- NA
+dat$fluoro[dat$fluoro == -9] <- NA
 
 #compute log transformed fluoro values
-dat.cut$l.fluoro <- log(dat.cut$fluoro)
-dat.cut$l.fluoro[is.nan(dat.cut$l.fluoro)] <- NA
+dat$l.fluoro <- log(dat$fluoro)
+dat$l.fluoro[is.nan(dat$l.fluoro)] <- NA
 
 #get latitude and longitude for each station
-n.station <- length(unique(dat.cut$stn))
-lat  <- dat.cut$lat[duplicated(dat.cut$stn) == FALSE]
-long <- dat.cut$long[duplicated(dat.cut$stn) == FALSE]
+n.station <- length(unique(dat$stn))
+lat  <- dat$lat[duplicated(dat$stn) == FALSE]
+long <- dat$long[duplicated(dat$stn) == FALSE]
 
 #plot location of BROKE-West station with station number overlayed
 plot(long, lat, col = "white", xlab = "longitude", ylab = "latitude")
 text(long, lat, c(2:118))
 title("location of BROKE-West CTD stations")
 
-
-#find depth of fluorescence maximum at each station
-max.depth <- 0
-for (i in 1:length(unique(dat.cut$stn))) {
-  max.depth[i] <- which.max(dat.cut$l.fluoro[dat.cut$stn == unique(dat.cut$stn)[i]])
-}
-dat.cut$max.depth <- rep(unique(dat.cut$profile.depth)[max.depth], each = 125)
-
-
-#function to convert degrees to radians
 deg2rad <- function(deg) {
+  #converts degrees to radians
+  #input: degree coordinate
+  #returns: radian coordinate 
+  
   return(deg*pi/180)
 }
 
-#Calculates the distance between two points with radian latitude/longitude using Haversine formula (hf)
 gcd.hf <- function(lat1, long1, lat2, long2) {
+  #calculates distance between two coordinates using the Haversine formula (hf)
+  #input: radian latitude and longitude coordinates
+  #returns: distance between coordinates in km
+  
   R <- 6371 # Earth mean radius [km]
   delta.long <- (long2 - long1)
-  delta.lat <- (lat2 - lat1)
+  delta.lat  <- (lat2 - lat1)
   a <- sin(delta.lat/2)^2 + cos(lat1) * cos(lat2) * sin(delta.long/2)^2
-  c <- 2 * asin(min(1,sqrt(a)))
+  c <- 2 * asin(min(1, sqrt(a)))
   d = R * c
-  return(d) # Distance in km
+  return(d) 
+  
 }
 
-dist_x <- matrix(0, ncol = n.station, nrow = n.station)
+#distance of each station from station 1 in x and y directions
+x <- 0
+y <- 0
+rad_long <- deg2rad(long)
+rad_lat  <- deg2rad(lat)
+top_lat <- deg2rad(max(lat))
+top_long <- deg2rad(max(long))
 for (i in 1:n.station) {
-  for (k in 1:n.station) {
-    dist_x[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[k]), deg2rad(long[i]))/100
-  }
+  x[i] <- gcd.hf(rad_lat[i], top_long, top_lat, top_long)/100    
+  y[i] <- gcd.hf(top_lat, rad_long[i], top_lat, top_long)/100
 }
-
-dist_y <- matrix(0, ncol = n.station, nrow = n.station)
-for (i in 1:n.station) {
-  for (k in 1:n.station) {
-    dist_y[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[i]), deg2rad(long[k]))/100
-  }
-}
-
-#get distance of each station from station 1 in x and y directions
-x <- dist_x[1, ]
-y <- dist_y[1, ]
 
 
 #data frame
-glm.spl <- data.frame(dat.cut$l.fluoro, dat.cut$depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$depth))), rep(y, 1, each = length(unique(dat.cut$depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxygen, dat.cut$ice, as.factor(dat.cut$wm))
+glm.spl <- data.frame(dat$l.fluoro, dat$depth, as.factor(dat$stn), rep(x, 1, each = length(unique(dat$depth))), rep(y, 1, each = length(unique(dat$depth))), dat$temp, dat$par, dat$sal, dat$oxygen, dat$ice, as.factor(dat$wm))
 names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm")
 glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
 glm.spl$x.fact <- as.factor(glm.spl$x)
@@ -104,4 +94,62 @@ asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 1
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
 summary(asreml.fit)
+
+
+#---------------------------- DROP SINGLE STATION AT ONCE ----------------------------#
+
+#randomly choose station
+station <- unique(dat$stn)
+
+dropOne <- function(station, dat, N) {
+  #cross validation by randomly dropping one station
+  #station = list of stations
+  #dat = data frame
+  #N = number of times to run cross-validation
+  
+  observed <- NULL
+  fitted <- NULL
+  stn <- NULL
+  
+  for (i in 1:N) {
+    r_station <- sample(station, 1)
+    
+    asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
+                           spl(temp, 10):wm + spl(oxy, 10) + stn, 
+                         data = dat[dat$stn != r_station, ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
+                         na.method.X = "include", workspace = 50000000) 
+    asreml.fit <- update(asreml.fit)
+    
+    predicted <- NULL
+    for (j in unique(dat$z)) {
+      pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == r_station & dat$z == j], "oxy" = dat$oxy[dat$stn == r_station & dat$z == j], "par" = dat$par[dat$stn == r_station & dat$z == j], "temp" = dat$temp[dat$stn == r_station & dat$z == j], "z" = j))
+      pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+      se <- pred$predictions$pvals["standard.error"]$standard.error
+      
+      predicted <- append(predicted, pval)
+    }
+    
+    observed <- append(observed, dat$l.obs[dat$stn == r_station])
+    stn <- append(stn, rep(r_station, length(unique(dat$z))))
+    
+  }
+  
+  return(list(N = N, stn = stn, observed = observed, predicted = predicted))
+  
+}
+
+test <- dropOne(station, dat = glm.spl, N = 2)
+
+
+#plot fitted against observed for all runs
+lat.plot <- xyplot(test$observed + test$fitted ~ glm.spl$z | test$N, 
+                   outer = FALSE, type = "l", xlab = list("depth (m)", cex = 2), ylab = list("l.fluoro", cex = 2), scales = list(cex = 2), cex.axis = 2)
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")), lwd = 2,  cex.axis = 2, cex.lab = 2)
+
+
+
+
+
+
+
 
