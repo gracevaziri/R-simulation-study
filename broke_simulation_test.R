@@ -58,23 +58,17 @@ gcd.hf <- function(lat1, long1, lat2, long2) {
   return(d) # Distance in km
 }
 
-dist_x <- matrix(0, ncol = n.station, nrow = n.station)
+#distance of each station from station 1 in x and y directions
+x <- 0
+y <- 0
+rad_long <- deg2rad(long)
+rad_lat  <- deg2rad(lat)
+top_lat <- deg2rad(max(lat))
+top_long <- deg2rad(max(long))
 for (i in 1:n.station) {
-  for (k in 1:n.station) {
-    dist_x[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[k]), deg2rad(long[i]))/100
-  }
+  x[i] <- gcd.hf(rad_lat[i], top_long, top_lat, top_long)/100    
+  y[i] <- gcd.hf(top_lat, rad_long[i], top_lat, top_long)/100
 }
-
-dist_y <- matrix(0, ncol = n.station, nrow = n.station)
-for (i in 1:n.station) {
-  for (k in 1:n.station) {
-    dist_y[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[i]), deg2rad(long[k]))/100
-  }
-}
-
-#get distance of each station from station 1 in x and y directions
-x <- dist_x[1, ]
-y <- dist_y[1, ]
 
 
 #data frame
