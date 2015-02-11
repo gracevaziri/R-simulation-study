@@ -1,5 +1,6 @@
 #runs cross validation using BROKE-West data
 #fits asreml model developed in simulation to BROKE-West data
+#cross-validation uses drop one station and drop one arm
 #author: Lisa-Marie Harrison
 #date: 05/02/2015
 
@@ -103,48 +104,117 @@ station <- unique(dat$stn)
 
 dropOne <- function(station, dat, N) {
   #cross validation by randomly dropping one station
-  #station = list of stations
-  #dat = data frame
+  #station = complete list of stations
+  #dat = data frame containing all data (glm.spl format)
   #N = number of times to run cross-validation
+  #return = station number, observed values, predicted values and depth for N stations
   
-  observed <- NULL
-  fitted <- NULL
-  stn <- NULL
+  observed  <- NULL
+  fitted    <- NULL
+  stn       <- NULL
+  depth     <- NULL
+  predicted <- NULL
+  std_error <- NULL
   
   for (i in 1:N) {
-    r_station <- sample(station, 1)
     
-    asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                           spl(temp, 10):wm + spl(oxy, 10) + stn, 
-                         data = dat[dat$stn != r_station, ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
-                         na.method.X = "include", workspace = 50000000) 
-    asreml.fit <- update(asreml.fit)
+    station_set <- sample(station, 10)
     
-    predicted <- NULL
-    for (j in unique(dat$z)) {
-      pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == r_station & dat$z == j], "oxy" = dat$oxy[dat$stn == r_station & dat$z == j], "par" = dat$par[dat$stn == r_station & dat$z == j], "temp" = dat$temp[dat$stn == r_station & dat$z == j], "z" = j))
-      pval <- pred$predictions$pvals["predicted.value"]$predicted.value
-      se <- pred$predictions$pvals["standard.error"]$standard.error
+    for (k in station_set) {
       
-      predicted <- append(predicted, pval)
+      print(k)
+      asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
+                             spl(temp, 10):wm + spl(oxy, 10) + stn, 
+                           data = dat[dat$stn != k, ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
+                           na.method.X = "include", workspace = 50000000) 
+      asreml.fit <- update(asreml.fit)
+      
+      for (j in unique(dat$z[dat$stn == k])) {
+        pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == k & dat$z == j], "oxy" = dat$oxy[dat$stn == k & dat$z == j], "par" = dat$par[dat$stn == k & dat$z == j], "temp" = dat$temp[dat$stn == k & dat$z == j], "z" = j))
+        pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+        se <- pred$predictions$pvals["standard.error"]$standard.error
+        
+        predicted <- append(predicted, pval)
+        std_error <- append(std_error, se)
+        
+        depth <- append(depth, j)
+      }
+      
+      observed <- append(observed, dat$l.obs[dat$stn == k])
+      stn <- append(stn, rep(k, length(unique(dat$z))))
+     
+      print(paste("Finished station", k))
     }
-    
-    observed <- append(observed, dat$l.obs[dat$stn == r_station])
-    stn <- append(stn, rep(r_station, length(unique(dat$z))))
     
   }
   
-  return(list(N = N, stn = stn, observed = observed, predicted = predicted))
+  return(list(depth = depth, stn = stn, std_error = std_error, observed = observed, predicted = predicted))
   
 }
 
-test <- dropOne(station, dat = glm.spl, N = 2)
+test <- dropOne(station, dat = glm.spl, N = 1)
 
 
-#plot fitted against observed for all runs
-lat.plot <- xyplot(test$observed + test$fitted ~ glm.spl$z | test$N, 
+#plot fitted against observed for all dropped stations
+lat.plot <- xyplot(test$observed + test$predicted ~ test$depth | test$stn, 
                    outer = FALSE, type = "l", xlab = list("depth (m)", cex = 2), ylab = list("l.fluoro", cex = 2), scales = list(cex = 2), cex.axis = 2)
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")), lwd = 2,  cex.axis = 2, cex.lab = 2)
+
+
+
+#----------------------------- DROP WHOLE ARM AT ONCE -------------------------------#
+
+survey_arms <- list('1' = 27:44, '2' = 45:59, '3' = 60:71, '4' = 72:85, '5' = 86:102, '6' = 103:118, '7' = 2:26)
+
+dropArm <- function(arm, dat, N) {
+  #performs cross-validation by dropping one arm of the survey at a time
+  #arm = list of stations in each survey arm
+  #dat = data frame containing all variables (glm.spl format)
+  #N = number of times to run cross-validation
+  #return = station number, observed, predicted for all dropped stations
+  
+  
+  for (i in 1:N) {
+    
+    observed <- NULL
+    fitted   <- NULL
+    stn      <- NULL
+    depth    <- NULL
+    
+    #randomly choose arm to drop
+    r_arm <- sample(1:length(arm), 1)
+    
+    asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
+                           spl(temp, 10):wm + spl(oxy, 10) + stn, 
+                         data = dat[dat$stn != unique(arm$r_arm), ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
+                         na.method.X = "include", workspace = 50000000) 
+    asreml.fit <- update(asreml.fit)
+    
+    #predict for each station that was dropped in the arm
+    for (s in arm$r_arm$stn) {
+      
+      for (j in unique(dat$z[dat$stn == s])) {
+        
+        pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == k & dat$z == j], "oxy" = dat$oxy[dat$stn == k & dat$z == j], "par" = dat$par[dat$stn == k & dat$z == j], "temp" = dat$temp[dat$stn == k & dat$z == j], "z" = j))
+        pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+        se <- pred$predictions$pvals["standard.error"]$standard.error
+        
+        predicted <- append(predicted, pval)
+        depth <- append(depth, j)
+        stn <- append(station, s)
+        
+      }
+      
+    }
+    
+  }
+  
+  return(list(depth = depth, stn = stn, observed = observed, predicted = predicted))
+  
+}
+
+
+
 
 
 
