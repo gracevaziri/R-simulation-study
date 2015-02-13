@@ -94,7 +94,7 @@ asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 1
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
-summary(asreml.fit)
+summary(asreml.fit)$varcomp
 
 
 #---------------------------- DROP SINGLE STATION AT ONCE ----------------------------#
@@ -126,7 +126,7 @@ dropOne <- function(station, dat, N) {
       asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
                              spl(temp, 10):wm + spl(oxy, 10) + stn, 
                            data = dat[dat$stn != k, ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
-                           na.method.X = "include", workspace = 50000000) 
+                           na.method.X = "include", workspace = 50000000, trace = FALSE) 
       asreml.fit <- update(asreml.fit)
       
       for (j in unique(dat$z[dat$stn == k])) {
@@ -161,6 +161,13 @@ lat.plot <- xyplot(exp(test$observed) + exp(test$predicted) ~ test$depth | test$
                    outer = FALSE, type = "l", xlab = list("depth (m)", cex = 2), ylab = list("l.fluoro", cex = 2), scales = list(cex = 2), cex.axis = 2)
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")), lwd = 2,  cex.axis = 2, cex.lab = 2)
 
+#plot distance in x and y direction against residuals
+par(mfrow = c(1, 2), mar=  c(5, 5, 5, 1))
+plot(glm.spl$x[glm.spl$stn %in% test$stn], test$observed - test$predicted, xlab = "latitudinal distance (100km)",
+     ylab = "residuals")
+plot(glm.spl$y[glm.spl$stn %in% test$stn], test$observed - test$predicted, xlab = "longitudinal distance (100km)",
+     ylab = "residuals")
+mtext("Residuals by x and y distance from top right of survey area", line = -3, side = 3, outer = TRUE, cex = 2)
 
 
 #----------------------------- DROP WHOLE ARM AT ONCE -------------------------------#
@@ -184,7 +191,7 @@ dropArm <- function(arm, dat, N) {
   
   for (i in 1:N) {
     
-    station_set <- sample(arm, 1)
+    station_set <- sample(arm[1:6], 1)
     
     for (k in station_set[[1]]) {
       
@@ -192,7 +199,7 @@ dropArm <- function(arm, dat, N) {
       asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
                              spl(temp, 10):wm + spl(oxy, 10) + stn, 
                            data = dat[!(dat$stn %in% station_set[[1]]), ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
-                           na.method.X = "include", workspace = 50000000) 
+                           na.method.X = "include", workspace = 50000000, trace = FALSE) 
       asreml.fit <- update(asreml.fit)
       
       for (j in unique(dat$z[dat$stn == k])) {
@@ -212,11 +219,25 @@ dropArm <- function(arm, dat, N) {
       print(paste("Finished station", k))
     }
     
-  }
+  
   
   return(list(depth = depth, stn = stn, std_error = std_error, observed = observed, predicted = predicted))
   
 }
 
-cross_val <- dropArm(survey_arms, glm.spl, 1)
+cross_val <- dropArm(survey_arms, dat = glm.spl, 1)
+
+cross_val$predicted[is.na(cross_val$observed)] <- NA
+
+#plot fitted against observed for all dropped stations
+lat.plot <- xyplot(cross_val$observed + cross_val$predicted ~ cross_val$depth | cross_val$stn, 
+                   outer = FALSE, type = "l", xlab = list("depth (m)", cex = 2), ylab = list("l.fluoro", cex = 2), scales = list(cex = 2), cex.axis = 2)
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")), lwd = 2,  cex.axis = 2, cex.lab = 2)
+
+
+
+#plot distance in x and y direction against residuals
+plot(glm.spl$x[glm.spl$stn %in% cross_val$stn], cross_val$observed - cross_val$predicted, xlab = "latitudinal distance (100km)",
+     ylab = "residuals")
+title("Residuals by x distance from top right corner of survey area")
 
