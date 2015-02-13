@@ -90,8 +90,8 @@ glm.spl$oxy  <- scale(glm.spl$oxy)
 
 
 # Bootstrap 95% CI for Z correlation
+# won't work with ASReml because it requires even sample sizes in the exaxt order of the error correlation structure
 
-# function to obtain R-Squared from the data 
 rsq <- function(data, indices, formula) {
   d <- data[indices, ] # allows boot to select sample 
   
