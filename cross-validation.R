@@ -191,7 +191,8 @@ dropArm <- function(arm, dat, N) {
   
   for (i in 1:N) {
     
-    station_set <- sample(arm[1:6], 1)
+    #station_set <- sample(arm[1:6], 1)
+    station_set <- arm[6]
     
     for (k in station_set[[1]]) {
       
@@ -218,14 +219,14 @@ dropArm <- function(arm, dat, N) {
       
       print(paste("Finished station", k))
     }
-    
+  }
   
-  
+
   return(list(depth = depth, stn = stn, std_error = std_error, observed = observed, predicted = predicted))
   
 }
 
-cross_val <- dropArm(survey_arms, dat = glm.spl, 1)
+cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 1)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
 
@@ -298,6 +299,7 @@ dropArm <- function(station, dat, N) {
   }
   
   cross_val <- dropArm(survey_arms, dat = glm.spl, 1)
+  
   
   cross_val$predicted[is.na(cross_val$observed)] <- NA
   
