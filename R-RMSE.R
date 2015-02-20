@@ -1,3 +1,7 @@
+#calculates the Root Mean Square Error (RMSE) for asreml models and predictions.
+#author: Lisa-Marie Harrison
+#date: 20/02/2015
+
 setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data")
 files <- list.files(pattern = "cross_val_drop_arm")
 
