@@ -337,9 +337,7 @@ dropArm <- function(arm, dat, N) {
   depth     <- NULL
   predicted <- NULL
   std_error <- NULL
-  
-  for (i in 1:6) {
-    
+      
     station_set <- arm[N]
     
     for (k in station_set[[1]]) {
@@ -367,7 +365,6 @@ dropArm <- function(arm, dat, N) {
       
       print(paste("Finished station", k))
     }
-  }
   
   
   return(list(depth = depth, stn = stn, std_error = std_error, observed = observed, predicted = predicted))
