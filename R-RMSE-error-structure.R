@@ -20,8 +20,12 @@ RMSECalc <- function(file_list) {
     
     dat <- read.csv(file_list[i], header = T)
     
+    
     #RMSE by depth
     for (depth in unique(dat$depth)) {
+      
+      dat_sub <- subset(dat, )
+      
       RMSE_z <- c(RMSE_z, sqrt(sum(na.omit((dat$predicted[dat$depth == depth] - dat$observed[dat$depth == depth])^2))/length(dat$depth[dat$depth == depth])))
       z <- c(z, depth)
       arm <- c(arm, i)
@@ -40,9 +44,9 @@ RMSECalc <- function(file_list) {
 RMSE_full <- RMSECalc(full_files)
 RMSE_null <- RMSECalc(null_files)
 
-plot(RMSE_full$z, RMSE_full$RMSE_z, xlab = "z", ylim = c(0, 2))
-plot(RMSE_null$z, RMSE_null$RMSE_z, xlab = "z", ylim = c(0, 2))
-plot(RMSE_full$stn, RMSE_null$stn)
-plot(RMSE_full$RMSE_z, RMSE_null$RMSE_z)
+plot(RMSE_full$z, RMSE_full$RMSE_z, xlab = "z (m)", ylab = "RMSE", main = "RMSE by depth for full model", ylim = c(0, 2), pch = 19)
+plot(RMSE_null$z, RMSE_null$RMSE_z, xlab = "z (m)", ylab = "RMSE", main = "RMSE by depth for null model", ylim = c(0, 2), pch = 19)
+plot(RMSE_full$stn, RMSE_null$stn, xlab = "RMSE by station, full model", ylab = "RMSE by station, null model", main = "Overall RMSE for each station", pch = 19)
+plot(RMSE_full$RMSE_z, RMSE_null$RMSE_z, xlab = "RMSE by depth, full model", ylab = "RMSE by depth, null model", main = "RMSE by depth", pch = 19)
 
 
