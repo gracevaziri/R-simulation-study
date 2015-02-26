@@ -89,7 +89,7 @@ glm.spl$oxy  <- scale(glm.spl$oxy)
 
 #fit full asreml model
 asreml.full <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                       spl(temp, 10):wm + spl(oxy, 10) + stn,
+                       spl(temp, 10):wm + spl(oxy, 10) + stn, aom = TRUE,
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.full <- update(asreml.full)
@@ -98,7 +98,7 @@ summary(asreml.full)$varcomp
 
 #fit null asreml model
 asreml.null <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                        spl(temp, 10):wm + spl(oxy, 10) + stn, data = glm.spl,
+                        spl(temp, 10):wm + spl(oxy, 10) + stn, data = glm.spl, aom = TRUE,
                       na.method.X = "include", workspace = 50000000)
 summary(asreml.null)$varcomp
 
@@ -122,6 +122,11 @@ plot(asreml.null)
 #likelihood ratio test to check whether adding correlation structure works
 1 - pchisq(2 * (asreml.full$loglik - asreml.null$loglik), 1) 
 
+
+
+blup <- asreml.full$aom$G[, 2]
+
+range(asreml.full$resid - blup)
 
 
 

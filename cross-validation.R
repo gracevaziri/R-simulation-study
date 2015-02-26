@@ -222,7 +222,7 @@ dropArm <- function(arm, dat, N) {
   
 }
 
-cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 1)
+cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 3)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
 
@@ -334,7 +334,7 @@ dropArm <- function(arm, dat, N) {
   predicted <- NULL
   std_error <- NULL
       
-    station_set <- arm[N]
+  station_set <- arm[N]
     
     for (k in station_set[[1]]) {
       
@@ -367,7 +367,7 @@ dropArm <- function(arm, dat, N) {
   
 }
 
-cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 6)
+cross_val <- dropArm(arm = survey_arms, dat = glm.spl, N = 6)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
 
