@@ -191,38 +191,36 @@ dropArm <- function(arm, dat, N) {
   
     station_set <- arm[N]
     
+    asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
+                           spl(temp, 10):wm + spl(oxy, 10) + stn, 
+                         data = dat[!(dat$stn %in% station_set[[1]]), ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
+                         na.method.X = "include", workspace = 50000000, trace = FALSE) 
+    asreml.fit <- update(asreml.fit)
+  
     for (k in station_set[[1]]) {
       
       print(k)
-      asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                             spl(temp, 10):wm + spl(oxy, 10) + stn, 
-                           data = dat[!(dat$stn %in% station_set[[1]]), ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
-                           na.method.X = "include", workspace = 50000000, trace = FALSE) 
-      asreml.fit <- update(asreml.fit)
-      
-      for (j in unique(dat$z[dat$stn == k])) {
-        pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == k & dat$z == j], "oxy" = dat$oxy[dat$stn == k & dat$z == j], "par" = dat$par[dat$stn == k & dat$z == j], "temp" = dat$temp[dat$stn == k & dat$z == j], "z" = j))
-        pval <- pred$predictions$pvals["predicted.value"]$predicted.value
-        se <- pred$predictions$pvals["standard.error"]$standard.error
         
-        predicted <- append(predicted, pval)
-        std_error <- append(std_error, se)
-        
-        depth <- append(depth, j)
-      }
+      j <- unique(dat$z[dat$stn == k])
+      pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == k], "oxy" = dat$oxy[dat$stn == k], "par" = dat$par[dat$stn == k], "temp" = dat$temp[dat$stn == k], "z" = j))
+      pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+      se <- pred$predictions$pvals["standard.error"]$standard.error
       
-      observed <- append(observed, dat$l.obs[dat$stn == k])
-      stn <- append(stn, rep(k, length(unique(dat$z))))
+      predicted <- append(predicted, pval)
+      std_error <- append(std_error, se)
       
-      print(paste("Finished station", k))
+      depth <- append(depth, j)
+
     }
   
+  observed <- append(observed, dat$l.obs[dat$stn == k])
+  stn <- append(stn, rep(k, length(unique(dat$z))))
 
   return(list(depth = depth, stn = stn, std_error = std_error, observed = observed, predicted = predicted))
   
 }
 
-cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 3)
+cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 1)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
 
