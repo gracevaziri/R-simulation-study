@@ -1,3 +1,10 @@
+#creates asreml fitted values by hand to check whether their fitted values include random effects
+#doesn't include spline terms because their complex coefficients aren't available in asreml-r
+#asreml does include random effects in the fitted values
+#author: Lisa-Marie Harrison
+#date: 05/03/2015
+
+
 asreml.fit <- asreml(fixed = l.obs ~ z, random =~ stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
