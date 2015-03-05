@@ -24,8 +24,7 @@ RMSECalc <- function(file_list) {
     #RMSE by depth
     for (depth in unique(dat$depth)) {
       
-      dat_sub <- subset(dat, )
-      
+    
       RMSE_z <- c(RMSE_z, sqrt(sum(na.omit((dat$predicted[dat$depth == depth] - dat$observed[dat$depth == depth])^2))/length(dat$depth[dat$depth == depth])))
       z <- c(z, depth)
       arm <- c(arm, i)
@@ -47,6 +46,141 @@ RMSE_null <- RMSECalc(null_files)
 plot(RMSE_full$z, RMSE_full$RMSE_z, xlab = "z (m)", ylab = "RMSE", main = "RMSE by depth for full model", ylim = c(0, 2), pch = 19)
 plot(RMSE_null$z, RMSE_null$RMSE_z, xlab = "z (m)", ylab = "RMSE", main = "RMSE by depth for null model", ylim = c(0, 2), pch = 19)
 plot(RMSE_full$stn, RMSE_null$stn, xlab = "RMSE by station, full model", ylab = "RMSE by station, null model", main = "Overall RMSE for each station", pch = 19)
-plot(RMSE_full$RMSE_z, RMSE_null$RMSE_z, xlab = "RMSE by depth, full model", ylab = "RMSE by depth, null model", main = "RMSE by depth", pch = 19)
+points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
 
+plot(RMSE_full$RMSE_z, RMSE_null$RMSE_z, xlab = "RMSE by depth, full model", ylab = "RMSE by depth, null model", main = "RMSE by depth", pch = 19)
+points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
+
+
+
+#------------------------------- one RMSE for each depth ----------------------------------#
+
+RMSECalc <- function(file_list) {
+  
+  pred <- NULL
+  
+  for (file in file_list) {
+    dat <- read.csv(file, header = T)
+    pred <- rbind(pred, dat)
+  }
+    
+  RMSE_z <- NULL
+  z <- NULL      
+  
+  #RMSE by depth
+  for (depth in unique(pred$depth)) {
+    
+    pred_sub <- pred[pred$depth == depth, ]
+    
+    RMSE_z <- c(RMSE_z, sqrt(sum(na.omit((pred_sub$predicted - pred_sub$observed)^2))/nrow(pred_sub)))
+    z <- c(z, depth)
+  }
+  
+  #one RMSE for all values
+  RMSE_overall <- sqrt(sum(na.omit((pred$predicted - pred$observed)^2))/nrow(pred))
+  
+    
+  return(list(RMSE_z = RMSE_z, z = z, overall = RMSE_overall, dat = pred))
+}
+
+
+RMSE_full <- RMSECalc(full_files)
+RMSE_null <- RMSECalc(null_files)
+
+
+plot(RMSE_full$RMSE_z, RMSE_null$RMSE_z, xlab = "RMSE by station, full model", ylab = "RMSE by station, null model", main = "Overall RMSE for each station", pch = 19)
+points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
+
+RMSE_full$overall
+RMSE_null$overall
+
+#percentage of observed values
+RMSE_full$overall/mean(na.omit(RMSE_full$dat$predicted))
+RMSE_null$overall/mean(na.omit(RMSE_null$dat$predicted))
+
+
+#depths plotted as percentage of mean depth
+depth_means_full <- apply(matrix(RMSE_full$dat$predicted, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
+depth_means_null <- apply(matrix(RMSE_null$dat$predicted, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
+
+plot(RMSE_full$RMSE_z, ylim = c(-4, 2))
+points(depth_means, col = "red")
+
+plot(unique(glm.spl$z), RMSE_full$RMSE_z/abs(depth_means_full)*100, xlab = "depth (m)", 
+     ylab = "RMSE/abs(prediction)")
+title("RMSE as % of predictions")
+legend("topright", c("full", "null"), col = c("black", "red"), lwd = 2, bty = "n")
+points(unique(glm.spl$z), RMSE_null$RMSE_z/abs(depth_means_null)*100, col = "red")
+
+
+plot(unique(glm.spl$z), depth_means_full, xlab = "depth (m)")
+title("Mean prediction (from full model) averaged across all stations at each depth")
+
+
+plot(RMSE_full$RMSE_z/abs(depth_means_full)*100, RMSE_null$RMSE_z/abs(depth_means_null)*100, 
+     xlab = "RMSE_full/depth_mean_full", ylab = "RMSE_null/depth_mean_null")
+points(c(0, 5000), c(0, 5000), type = "l", col = "red")
+title("RMSE as % of mean predictions at each depth")
+
+
+plot(RMSE_full$RMSE_z/abs(depth_means_full)*100, RMSE_null$RMSE_z/abs(depth_means_null)*100, 
+     xlab = "RMSE_full/depth_mean_full", ylab = "RMSE_null/depth_mean_null", xlim = c(1,100), ylim = c(1,100))
+points(c(0, 5000), c(0, 5000), type = "l", col = "red")
+
+
+#bias by depth
+depth_pred_full <- apply(matrix(RMSE_full$dat$predicted, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
+depth_pred_null <- apply(matrix(RMSE_null$dat$predicted, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
+
+depth_obs_full <- apply(matrix(RMSE_full$dat$observed, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
+depth_obs_null <- apply(matrix(RMSE_null$dat$observed, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
+
+plot(unique(glm.spl$z), depth_obs_full - depth_pred_full, xlab = "depth (m)", ylab = "obs - pred")
+points(unique(glm.spl$z), depth_obs_null - depth_pred_null, col = "red")
+title("Bias = mean(observed) - mean(predicted)")
+legend("topleft", c("full", "null"), col = c("black", "red"), lwd = 2, bty = "n")
+
+
+#bias by station
+depth_pred_full <- apply(matrix(RMSE_full$dat$predicted, ncol = 92, byrow = F), 2, mean, na.rm = TRUE)
+depth_pred_null <- apply(matrix(RMSE_null$dat$predicted, ncol = 92, byrow = F), 2, mean, na.rm = TRUE)
+
+depth_obs_full <- apply(matrix(RMSE_full$dat$observed, ncol = 92, byrow = F), 2, mean, na.rm = TRUE)
+depth_obs_null <- apply(matrix(RMSE_null$dat$observed, ncol = 92, byrow = F), 2, mean, na.rm = TRUE)
+
+
+plot(unique(RMSE_full$dat$stn), depth_obs_full - depth_pred_full, xlab = "depth (m)", ylab = "obs - pred")
+points(unique(glm.spl$z), depth_obs_null - depth_pred_null, col = "red")
+title("Bias = mean(observed) - mean(predicted)")
+legend("topleft", c("full", "null"), col = c("black", "red"), lwd = 2, bty = "n")
+
+
+x_var = dat$long[duplicated(dat$stn) == FALSE][27:118]
+y_var = dat$lat[duplicated(dat$stn) == FALSE][27:118]
+
+#full model
+size_var = abs(depth_obs_full - depth_pred_full)
+col = rep(0, length(size_var))
+col[(depth_obs_full - depth_pred_full) < 0] <- "red"
+col[(depth_obs_full - depth_pred_full) > 0] <- "blue"
+radius <- sqrt(size_var/ pi)
+symbols(x_var, y_var, circles = radius, inches = 0.25, fg = col, xlab = "longitude", ylab = "latitude")
+title("Bias in predictions by station - FULL model")
+legend("topleft", c("positive", "negative"), col = c("blue", "red"), lwd = 2, bty = "n")
+
+#null model
+size_var = abs(depth_obs_null - depth_pred_null)
+col = rep(0, length(size_var))
+col[(depth_obs_null - depth_pred_null) < 0] <- "red"
+col[(depth_obs_null - depth_pred_null) > 0] <- "blue"
+radius <- sqrt(size_var/ pi)
+symbols(x_var, y_var, circles = radius, inches = 0.25, fg = col, xlab = "longitude", ylab = "latitude")
+title("Bias in predictions by station - NULL model")
+legend("topleft", c("positive", "negative"), col = c("blue", "red"), lwd = 2, bty = "n")
+
+
+plot(depth_obs_full - depth_pred_full, depth_obs_null - depth_pred_null, xlim = c(-1.5, 3), 
+     ylim = c(-1.5, 3), xlab = "Full model bias", ylab = "Null model bias")
+points(c(-2, 3), c(-2, 3), type = "l", col = "red")
+title("Bias at each station (mean observed - mean predicted)")
 
