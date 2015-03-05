@@ -192,9 +192,9 @@ dropArm <- function(arm, dat, N) {
     station_set <- arm[N]
     
     asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                           spl(temp, 10):wm + spl(oxy, 10) + stn, 
+                           spl(temp, 10):wm + spl(oxy, 10) + stn, predictpoints = list(wm = c(1:125), temp = c(1:125), par = c(1:125), oxy = c(1:125), z = c(1:125)),
                          data = dat[!(dat$stn %in% station_set[[1]]), ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
-                         na.method.X = "include", workspace = 50000000, trace = FALSE) 
+                         na.method.X = "include", workspace = 50000000) 
     asreml.fit <- update(asreml.fit)
   
     for (k in station_set[[1]]) {
