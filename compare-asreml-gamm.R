@@ -102,7 +102,7 @@ summary(asreml.fit)$varcomp
 
 
 #fit gamm to compare
-gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(par) + s(ice), random = list(stn =~ 1, x =~1, y =~1), 
+gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(par) + s(ice), random = list(stn =~ 1), 
                  data = glm.spl, correlation = corAR1(0.9, 1 ~ z | x | y))
 summary(gamm.fit$gam)
 
@@ -111,5 +111,28 @@ summary(gamm.fit$gam)
 lat.plot <- xyplot(glm.spl$l.obs + fitted(gamm.fit$gam) ~ glm.spl$z | glm.spl$stn, outer = FALSE, type = "l")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
+summary(gamm.fit$lme)$AIC
 
+l = asreml.fit$logl
+K = length(asreml.fit$gammas) 
+AIC = -2*l + 2*K 
+
+
+asreml.fit$fitted[is.na(glm.spl$l.obs)] <- NA
+gamm.fit$gam$fitted[is.na(glm.spl$l.obs)] <- NA
+
+#randomly choose 4 stations and plot fitted and observed
+s <- sample(c(2:118), 4, replace = FALSE)
+lat.plot <- xyplot(glm.spl$l.obs[glm.spl$stn %in% s] + asreml.fit$fitted[glm.spl$stn %in% s] + gamm.fit$gam$fitted[glm.spl$stn %in% s] ~ glm.spl$z[glm.spl$stn %in% s] | glm.spl$stn[glm.spl$stn %in% s], outer = FALSE, type = "l", 
+                   xlab = "depth (m)", ylab = "log(fluorescence)", cex.lab = 3)
+update(lat.plot, par.settings = simpleTheme(lwd = 2, lty = c(1, 5, 3), col = c("black", "blue", "red")))
+
+plot(glm.spl$z, asreml.fit$residuals)
+points(glm.spl$z[as.numeric(names(residuals(gamm.fit$gam)))], residuals(gamm.fit$gam), col = "red")
+
+
+qqnorm(residuals(gamm.fit$gam), xlim = c(-4, 4), ylim = c(-4, 4))
+points(c(-5, 5), c(-5, 5), col = "red", type = "l")
+qqnorm(asreml.fit$resid, xlim = c(-4, 4), ylim = c(-4, 4))
+points(c(-5, 5), c(-5, 5), col = "red", type = "l")
 
