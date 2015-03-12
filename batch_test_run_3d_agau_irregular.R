@@ -12,7 +12,7 @@ y.phi    <- 0
 
 for (i in 1:200) {
   
-  glm.spl <- simData(noise.sd = 0.2, stn.sd = 0.05, z.phi = 0.4,
+  glm.spl <- simData(noise.sd = 0.2, stn.sd = 0.05, z.phi = 0.35,
                      x.phi = 0.5, y.phi = 0.4)
   
   asreml.fit <- asreml(fixed = l.obs ~ z, random =~ spl(z) + stn, data = glm.spl, 
@@ -35,7 +35,7 @@ par(mfrow = c(2, 3))
 hist(stn.sd, main = "stn.sd")
 abline(v = 0.05, col = "red", lwd = 2)
 abline(v = mean(stn.sd), col = "blue", lwd = 2)
-hist(noise.sd, main = "noise.sd")
+hist(noise.sd, main = "noise.sd", xlim = c(0.19, 0.23))
 abline(v = 0.2, col = "red", lwd = 2)
 abline(v = mean(noise.sd), col = "blue", lwd = 2)
 hist(z.phi, main = "z.phi")
@@ -49,6 +49,13 @@ abline(v = 0.4, col = "red", lwd = 2)
 abline(v = mean(y.phi), col = "blue", lwd = 2)
 
 
+
+
+mean(stn.sd)
+mean(noise.sd)
+mean(z.phi)
+mean(x.phi)
+mean(y.phi)
 
 
 
