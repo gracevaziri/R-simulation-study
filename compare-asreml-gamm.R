@@ -103,7 +103,7 @@ summary(asreml.fit)$varcomp
 
 #fit gamm to compare
 gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(par) + s(ice), random = list(stn =~ 1), 
-                 data = glm.spl, correlation = corAR1(0.9, 1 ~ z | x | y))
+                 data = glm.spl, correlation = corAR1(0.9, 1 ~ z | x | y), method = "REML")
 summary(gamm.fit$gam)
 
 
