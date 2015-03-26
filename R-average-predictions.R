@@ -1,9 +1,8 @@
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                       spl(temp, 10):wm + spl(oxy, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                       spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
-                     na.method.X = "include", pworkspace = 50000000)
+                     na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
-
 
 
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
@@ -11,42 +10,24 @@ asreml.fit <- update(asreml.fit)
 par(mfrow = c(2, 2))
 
 #temperature
-pred <- predict(asreml.fit, classify = "temp:wm", levels = list("wm" = c("1", "2", "3", "4")))
+pred <- predict(asreml.fit, classify = "temp")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
-temp_1 <- pred$predictions$pvals["temp"]$temp[pred$predictions$pvals$wm == 1]
-se_1 <- pred$predictions$pvals["standard.error"]$standard.error[pred$predictions$pvals$wm == 1]
-temp_2 <- pred$predictions$pvals["temp"]$temp[pred$predictions$pvals$wm == 2]
-se_2 <- pred$predictions$pvals["standard.error"]$standard.error[pred$predictions$pvals$wm == 2]
-temp_3 <- pred$predictions$pvals["temp"]$temp[pred$predictions$pvals$wm == 3]
-se_3 <- pred$predictions$pvals["standard.error"]$standard.error[pred$predictions$pvals$wm == 3]
-temp_4 <- pred$predictions$pvals["temp"]$temp[pred$predictions$pvals$wm == 4]
-se_4 <- pred$predictions$pvals["standard.error"]$standard.error[pred$predictions$pvals$wm == 4]
 
+temp <- pred$predictions$pvals["temp"]$temp
+se <- pred$predictions$pvals["standard.error"]$standard.error
 
 
 logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
-ci <- exp(logci)
-dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
-ci <- exp(logci)
-dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
-
-logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
-ci <- exp(logci)
-dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
-
-
+par(mfrow = c(3, 2))
 
 plot(temp, ci[, 2], xlab = "temperature", ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(temp, ci[, 1], type = "l", lty = 2)
 points(temp, ci[, 3], type = "l", lty = 2)
-
 
 #par
 pred <- predict(asreml.fit, classify = "par")
@@ -95,3 +76,23 @@ plot(z, ci[, 2], xlab = "depth (m)", ylab = "",
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(z, ci[, 1], type = "l", lty = 2)
 points(z, ci[, 3], type = "l", lty = 2)
+
+
+
+#salinity
+pred <- predict(asreml.fit, classify = "sal")
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+
+sal <- pred$predictions$pvals["sal"]$sal
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+
+plot(sal, ci[, 2], xlab = "salinity", ylab = "", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
+points(sal, ci[, 1], type = "l", lty = 2)
+points(sal, ci[, 3], type = "l", lty = 2)
