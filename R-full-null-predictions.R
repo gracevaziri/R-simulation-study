@@ -1,14 +1,15 @@
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                       spl(temp, 10):wm + spl(oxy, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                       spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
+asreml.fit <- update(asreml.fit)
 
-asreml.null <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                       spl(temp, 10):wm + spl(oxy, 10) + stn, 
+asreml.null <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                       spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl,
                      na.method.X = "include", workspace = 50000000)
-
+asreml.null <- update(asreml.null)
 
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
 
@@ -112,6 +113,7 @@ se_null <- pred_null$predictions$pvals["standard.error"]$standard.error
 logci_null <- pval_null + se_null%*%t(qnorm(c(0.025,0.5,0.975)))
 ci_null <- exp(logci_null)
 dimnames(ci_null)[[2]]<-c("lower95", "est", "upper95")
+
 
 
 plot(z, ci[, 2], xlab = "z", ylab = "", type = "l", ylim = c(min(ci[, 1]), max(ci_null[, 3])), lwd = 2)
