@@ -89,8 +89,8 @@ glm.spl$oxy  <- scale(glm.spl$oxy)
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                       spl(temp, 10):wm + spl(oxy, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                       spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
@@ -191,18 +191,21 @@ dropArm <- function(arm, dat, N) {
   
     station_set <- arm[N]
     
-    asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                           spl(temp, 10):wm + spl(oxy, 10) + stn, predictpoints = list(wm = c(1:125), temp = c(1:125), par = c(1:125), oxy = c(1:125), z = c(1:125)),
+    asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                           spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, predictpoints = list(wm = c(1:125), temp = c(1:125), par = c(1:125), oxy = c(1:125), z = c(1:125)),
                          data = dat[!(dat$stn %in% station_set[[1]]), ], rcov=~ ar1(z.fact):agau(x.fact, y.fact),
-                         na.method.X = "include", workspace = 50000000) 
+                         na.method.X = "include", workspace = 50000000, aom = T) 
     asreml.fit <- update(asreml.fit)
   
     for (k in station_set[[1]]) {
       
       print(k)
         
-      j <- unique(dat$z[dat$stn == k])
-      pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == k], "oxy" = dat$oxy[dat$stn == k], "par" = dat$par[dat$stn == k], "temp" = dat$temp[dat$stn == k], "z" = j))
+      for (j in unique(dat$z[dat$stn == k])) {
+        
+      pred <- predict(asreml.fit, classify = "z:temp:par:oxy:wm:sal", levels = list("z" = j, "wm" = dat$wm[dat$stn == k & dat$z == j], "oxy" = dat$oxy[dat$stn == k & dat$z == j], "par" = dat$par[dat$stn == k & dat$z == j], "temp" = dat$temp[dat$stn == k & dat$z == j], "sal" = dat$sal[dat$stn == k & dat$z == j]), trace = F)
+      
+     
       pval <- pred$predictions$pvals["predicted.value"]$predicted.value
       se <- pred$predictions$pvals["standard.error"]$standard.error
       
@@ -210,6 +213,8 @@ dropArm <- function(arm, dat, N) {
       std_error <- append(std_error, se)
       
       depth <- append(depth, j)
+      
+      }
 
     }
   
@@ -223,6 +228,8 @@ dropArm <- function(arm, dat, N) {
 cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 1)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
+
+cross_val$stn <- rep(survey_arms[1]$`1`, each = 125)
 
 #plot fitted against observed for all dropped stations
 lat.plot <- xyplot(cross_val$observed + cross_val$predicted ~ cross_val$depth | cross_val$stn, 
@@ -296,6 +303,9 @@ dropArm <- function(station, dat, N) {
   
   
   cross_val$predicted[is.na(cross_val$observed)] <- NA
+  
+  d <- data.frame(cross_val)
+  cross_val$stn <- rep()
   
   #plot fitted against observed for all dropped stations
   lat.plot <- xyplot(cross_val$observed + cross_val$predicted ~ cross_val$depth | cross_val$stn, 
