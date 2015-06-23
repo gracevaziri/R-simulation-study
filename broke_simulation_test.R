@@ -92,8 +92,8 @@ glm.spl$oxy  <- scale(glm.spl$oxy)
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                        spl(temp, 10):wm + spl(oxy, 10) + stn, 
+asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                        spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
@@ -125,12 +125,12 @@ gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm
 dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
 plot(dist, gamma)
 
-gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(fit)[glm.spl$stn == d])$gamma
-dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
+gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.null)[glm.spl$stn == d])$gamma
+dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.null)[glm.spl$stn == d])$x
 plot(dist, gamma)
 
 #likelihood ratio test to check whether adding correlation structure works
-1 - pchisq(2 * (asreml.fit$loglik - fit$loglik), 1) 
+1 - pchisq(2 * (asreml.fit$loglik - asreml.null$loglik), 1) 
 
 
 
@@ -148,13 +148,17 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 
 
 
-#bubble plot of residuals by station
-res <- residuals(asreml.fit)[glm.spl$z == 100][order(glm.spl$stn[glm.spl$z == 100])]
+#bubble plot of mean residuals by station
+res <- aggregate(residuals(asreml.fit), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
 radius <- sqrt(abs(res) / pi)
 color <- rep("blue", length(radius))
 color[res < 0] <- "red"
-symbols(long, lat, circles=radius, inches = 0.1, fg = color)
+symbols(long, lat, circles=radius, inches = 0.2, fg = color, lwd = 2)
 
+#bubble plot of mean fluorescence by station
+res <- aggregate(exp(glm.spl$l.obs), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
+radius <- sqrt(abs(res) / pi)
+symbols(long, lat, circles=radius, inches = 0.2, lwd = 2)
 
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
 
@@ -170,7 +174,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(temp, ci[, 2], xlab = "temperature", ylab = "", 
+plot(temp, ci[, 2], xlab = "temperature (degrees celcius)", ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(temp, ci[, 1], type = "l", lty = 2)
 points(temp, ci[, 3], type = "l", lty = 2)
@@ -186,7 +190,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(par, ci[, 2], xlab = "par", ylab = "", 
+plot(par, ci[, 2], xlab = expression("par" ~ (??E ~ m^{???2} ~ s^{???1})), ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(par, ci[, 1], type = "l", lty = 2)
 points(par, ci[, 3], type = "l", lty = 2)
@@ -202,7 +206,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(oxy, ci[, 2], xlab = "dissolved oxygen", ylab = "", 
+plot(oxy, ci[, 2], xlab = expression("dissolved oxygen" ~ (??mol ~ L^{???1})), ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(oxy, ci[, 1], type = "l", lty = 2)
 points(oxy, ci[, 3], type = "l", lty = 2)
@@ -224,6 +228,21 @@ plot(z, ci[, 2], xlab = "depth (m)", ylab = "",
 points(z, ci[, 1], type = "l", lty = 2)
 points(z, ci[, 3], type = "l", lty = 2)
 
+
+#salinity
+pred <- predict(asreml.fit, classify = "sal")
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+z <- pred$predictions$pvals["sal"]$sal
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", 
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
+points(z, ci[, 1], type = "l", lty = 2)
+points(z, ci[, 3], type = "l", lty = 2)
 
 #-------------------------- CTD VERTICAL PROFILE ------------------------------#
 
@@ -273,5 +292,57 @@ legend(150, 1, c("Current station 2 prediction", "2 degrees celcius temperature 
 
 
 
+#---------------- FIT ASREML MODEL WITHOUT CORRELATION STRUCTURE --------------#
+
+
+#data frame
+glm.spl <- data.frame(dat.cut$l.fluoro, dat.cut$depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$depth))), rep(y, 1, each = length(unique(dat.cut$depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxygen, dat.cut$ice, as.factor(dat.cut$wm))
+names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm")
+glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
+glm.spl$x.fact <- as.factor(glm.spl$x)
+glm.spl$y.fact <- as.factor(glm.spl$y)
+glm.spl <- glm.spl[order(glm.spl$z, glm.spl$x, glm.spl$y), ] #sort by order of rcov structure
+glm.spl$l.obs[glm.spl$l.obs == -Inf] <- NA
+
+#centre and scale covariates to mean = 0 and sd = 1
+#this is required if using na.method = "include" since this sets the missing values to 0
+glm.spl$temp <- scale(glm.spl$temp)
+glm.spl$par  <- scale(glm.spl$par)
+glm.spl$sal  <- scale(glm.spl$sal)
+glm.spl$oxy  <- scale(glm.spl$oxy)
+glm.spl$ice  <- scale(glm.spl$ice)
+glm.spl$oxy  <- scale(glm.spl$oxy)
+
+#fit asreml model
+asreml.full <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                       spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
+                     data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
+                     na.method.X = "include", workspace = 50000000, aom = T)
+asreml.full <- update(asreml.full)
+summary(asreml.full)
+
+
+#fit null asreml model
+asreml.null <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) + 
+                       spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn,
+                     data = glm.spl, na.method.X = "include", workspace = 50000000, aom = T)
+asreml.null <- update(asreml.null)
+summary(asreml.null)
+
+#plot fitted against observed for all stations
+lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.full) ~ glm.spl$z | glm.spl$stn, 
+                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
+
+
+
+plot(asreml.null$resid, asreml.full$resid, xlim = c(-4, 4), ylim = c(-4, 4))
+plot(asreml.null$fitted, asreml.full$fitted)
+
+
+acf(aggregate(glm.spl$l.obs, by = list(glm.spl$z), FUN = mean, na.rm = T)$x)
+
+acf(aggregate(residuals(asreml.full$resid), by = list(glm.spl$z), FUN = mean, na.rm = T)$x)
+acf(aggregate(residuals(asreml.null), by = list(glm.spl$z), FUN = mean, na.rm = T)$x)
 
 
