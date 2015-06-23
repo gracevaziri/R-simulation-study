@@ -101,7 +101,7 @@ RMSE_null$overall/mean(na.omit(RMSE_null$dat$predicted))
 
 #depths plotted as percentage of mean depth
 depth_means_full <- apply(matrix(RMSE_full$dat$predicted, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
-depth_means_null <- apply(matrix(RMSE_null$dat$predicted, ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
+depth_means_null <- apply(matrix(c(RMSE_null$dat$predicted, NA), ncol = 92, byrow = F), 1, mean, na.rm = TRUE)
 
 plot(RMSE_full$RMSE_z, ylim = c(-4, 2))
 points(depth_means, col = "red")
@@ -183,4 +183,32 @@ plot(depth_obs_full - depth_pred_full, depth_obs_null - depth_pred_null, xlim = 
      ylim = c(-1.5, 3), xlab = "Full model bias", ylab = "Null model bias")
 points(c(-2, 3), c(-2, 3), type = "l", col = "red")
 title("Bias at each station (mean observed - mean predicted)")
+
+
+#variogram for correlation
+d <- 5
+gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.full)[glm.spl$stn == d])$gamma
+dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.full)[glm.spl$stn == d])$x
+plot(dist, gamma)
+
+gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.null)[glm.spl$stn == d])$gamma
+dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.null)[glm.spl$stn == d])$x
+points(dist, gamma, col = "red")
+
+
+r <- cbind(summary(asreml.full)$varcomp$component[1:7], summary(asreml.null)$varcomp$component[1:7])
+rownames(r) <- c("spl(z, 10)", "spl(par, 10)", "spl(temp, 10):wm!wm.var", "spl(oxy, 10) ", "spl(sal, 10)", "stn!stn.var", "R!variance")
+colnames(r) <- c("full", "null")
+r
+
+lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.full) + fitted(asreml.null) ~ glm.spl$z | glm.spl$stn, 
+                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red", "green")))
+
+
+lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.full) + fitted(asreml.null) ~ glm.spl$z | glm.spl$stn, 
+                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red", "green")))
+
+
 
