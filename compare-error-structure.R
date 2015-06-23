@@ -88,18 +88,18 @@ glm.spl$oxy  <- scale(glm.spl$oxy)
 
 
 #fit full asreml model
-asreml.full <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                       spl(temp, 10):wm + spl(oxy, 10) + stn, aom = TRUE,
-                     data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
+asreml.full <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                       spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn,
+                     data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact), aom = T,
                      na.method.X = "include", workspace = 50000000)
 asreml.full <- update(asreml.full)
 summary(asreml.full)$varcomp
 
 
 #fit null asreml model
-asreml.null <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                        spl(temp, 10):wm + spl(oxy, 10) + stn, data = glm.spl, aom = TRUE,
-                      na.method.X = "include", workspace = 50000000)
+asreml.null <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+                        spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, data = glm.spl,
+                      na.method.X = "include", workspace = 50000000, aom = T)
 summary(asreml.null)$varcomp
 
 
@@ -128,5 +128,74 @@ blup <- asreml.full$aom$G[, 2]
 
 range(asreml.full$resid - blup)
 
+
+
+#depth autocorrelation
+acf(aggregate(residuals(asreml.full), by = list(glm.spl$z), FUN = mean, na.rm = TRUE)$x)
+acf(aggregate(residuals(asreml.null), by = list(glm.spl$z), FUN = mean, na.rm = TRUE)$x)
+
+#x autocorrelation
+acf(aggregate(residuals(asreml.full), by = list(glm.spl$x), FUN = mean, na.rm = TRUE)$x)
+acf(aggregate(residuals(asreml.null), by = list(glm.spl$x), FUN = mean, na.rm = TRUE)$x)
+
+
+#y autocorrelation
+acf(aggregate(residuals(asreml.full), by = list(glm.spl$y), FUN = mean, na.rm = TRUE)$x)
+acf(aggregate(residuals(asreml.null), by = list(glm.spl$y), FUN = mean, na.rm = TRUE)$x)
+
+
+acf(na.omit(residuals(asreml.full)[glm.spl$stn == 20]))
+
+#depth
+a <- matrix(0, nrow = 125, ncol = 1)
+for (i in unique(glm.spl$stn)) {
+  a <- cbind(a, acf(na.omit(residuals(asreml.null)[glm.spl$stn == i]), plot=FALSE, lag.max = 125)$acf)
+}
+b <- matrix(0, nrow = 125, ncol = 1)
+for (i in unique(glm.spl$stn)) {
+  b <- cbind(b, acf(na.omit(residuals(asreml.full)[glm.spl$stn == i]), plot=FALSE, lag.max = 125)$acf)
+}
+
+plot(seq(2, 250, by = 2), rowMeans(a), type = "l", ylim = c(-0.5, 1), xlab = "depth lag distance (m)", ylab = "mean autocorrelation across all stations")
+points(seq(2, 250, by = 2),rowMeans(b), type = "l", lty = 2)
+legend("bottomright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n")
+
+
+
+#x
+dat <- cbind(residuals(asreml.null), glm.spl$z, round(glm.spl$x))
+a <- matrix(0, nrow = 10, ncol = 1)
+for (i in unique(glm.spl$z)) {
+  d <- dat[dat[, 2] == i, ]
+  a <- cbind(a, acf(na.omit(d[order(d[, 3]), 1]))$acf)
+}
+dat <- cbind(residuals(asreml.full), glm.spl$z, round(glm.spl$x))
+b <- matrix(0, nrow = 10, ncol = 1)
+for (i in unique(glm.spl$z)) {
+  d <- dat[dat[, 2] == i, ]
+  b <- cbind(b, acf(na.omit(d[order(d[, 3]), 1]))$acf)
+}
+plot(rowMeans(a), type = "l", ylim = c(-0.5, 1), xlab = "latitude lag distance (100 km)", ylab = "mean autocorrelation across all stations")
+points(rowMeans(b), type = "l", lty = 2)
+legend("bottomright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n")
+
+
+
+#y
+dat <- cbind(residuals(asreml.null), glm.spl$z, round(glm.spl$y))
+a <- matrix(0, nrow = 10, ncol = 1)
+for (i in unique(glm.spl$z)) {
+  d <- dat[dat[, 2] == i, ]
+  a <- cbind(a, acf(na.omit(d[order(d[, 3]), 1]))$acf)
+}
+dat <- cbind(residuals(asreml.full), glm.spl$z, round(glm.spl$y))
+b <- matrix(0, nrow = 10, ncol = 1)
+for (i in unique(glm.spl$z)) {
+  d <- dat[dat[, 2] == i, ]
+  b <- cbind(b, acf(na.omit(d[order(d[, 3]), 1]))$acf)
+}
+plot(rowMeans(a), type = "l", ylim = c(-0.5, 1), xlab = "longitude lag distance (100km)", ylab = "mean autocorrelation across all stations")
+points(rowMeans(b), type = "l", lty = 2)
+legend("bottomright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n")
 
 
