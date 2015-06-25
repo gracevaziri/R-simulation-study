@@ -225,7 +225,7 @@ dropArm <- function(arm, dat, N) {
   
 }
 
-cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 1)
+cross_val <- dropArm(arm = survey_arms, dat = glm.spl, 6)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
 
@@ -347,14 +347,14 @@ dropArm <- function(arm, dat, N) {
     for (k in station_set[[1]]) {
       
       print(k)
-      asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy, random =~ spl(z, 10) + spl(par, 10) + 
-                             spl(temp, 10):wm + spl(oxy, 10) + stn, 
+      asreml.fit <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) + 
+                             spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, aom = T,
                            data = dat[!(dat$stn %in% station_set[[1]]), ],
                            na.method.X = "include", workspace = 50000000, trace = FALSE) 
       asreml.fit <- update(asreml.fit)
       
       for (j in unique(dat$z[dat$stn == k])) {
-        pred <- predict(asreml.fit, classify = "temp:z:par:oxy:wm", levels = list("wm" = dat$wm[dat$stn == k & dat$z == j], "oxy" = dat$oxy[dat$stn == k & dat$z == j], "par" = dat$par[dat$stn == k & dat$z == j], "temp" = dat$temp[dat$stn == k & dat$z == j], "z" = j))
+        pred <- predict(asreml.fit, classify = "temp:z:sal:oxy:wm", levels = list("wm" = dat$wm[dat$stn == k & dat$z == j], "oxy" = dat$oxy[dat$stn == k & dat$z == j], "sal" = dat$sal[dat$stn == k & dat$z == j], "temp" = dat$temp[dat$stn == k & dat$z == j], "z" = j))
         pval <- pred$predictions$pvals["predicted.value"]$predicted.value
         se <- pred$predictions$pvals["standard.error"]$standard.error
         
@@ -375,7 +375,7 @@ dropArm <- function(arm, dat, N) {
   
 }
 
-cross_val <- dropArm(arm = survey_arms, dat = glm.spl, N = 6)
+cross_val <- dropArm(arm = survey_arms, dat = glm.spl, N = 3)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
 
