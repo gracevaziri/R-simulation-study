@@ -150,19 +150,34 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 
 #bubble plot of mean residuals by station
 res <- aggregate(residuals(asreml.fit), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
-radius <- sqrt(abs(res) / pi)
-color <- rep("blue", length(radius))
-color[res < 0] <- "red"
-symbols(long, lat, circles=radius, inches = 0.2, fg = color, lwd = 2)
+bubble_dat <- as.data.frame(cbind(long, lat, res))
+colnames(bubble_dat) <- c("long", "lat", "res")
+
+p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) + 
+  geom_point(aes(x=long, y=lat, size=abs(res)), colour="red", fill = "red", shape = 21)+ scale_size_area(max_size = 15) +
+    scale_x_continuous(name="Longitude") +
+  scale_y_continuous(name="Latitude") +
+  theme_bw() + 
+  theme(legend.title=element_blank(), text = element_text(size=20)) 
+p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="blue", fill = "blue", shape = 21, add = TRUE)
+
+
 
 #bubble plot of mean fluorescence by station
 res <- aggregate(exp(glm.spl$l.obs), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
-radius <- sqrt(abs(res) / pi)
-symbols(long, lat, circles=radius, inches = 0.2, lwd = 2)
+bubble_dat <- as.data.frame(cbind(long, lat, res))
+colnames(bubble_dat) <- c("long", "lat", "res")
+
+ggplot(bubble_dat, guide = FALSE) + 
+  geom_point(aes(x=long, y=lat, size=res), shape = 21)+ scale_size_area(max_size = 15) +
+  scale_x_continuous(name="Longitude") +
+  scale_y_continuous(name="Latitude") +
+  theme_bw() + 
+  theme(legend.title=element_blank(), text = element_text(size=20)) 
 
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
 
-par(mfrow = c(2, 2))
+par(mfrow = c(1, 2))
 
 #temperature
 pred <- predict(asreml.fit, classify = "temp")
@@ -294,25 +309,6 @@ legend(150, 1, c("Current station 2 prediction", "2 degrees celcius temperature 
 
 #---------------- FIT ASREML MODEL WITHOUT CORRELATION STRUCTURE --------------#
 
-
-#data frame
-glm.spl <- data.frame(dat.cut$l.fluoro, dat.cut$depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$depth))), rep(y, 1, each = length(unique(dat.cut$depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxygen, dat.cut$ice, as.factor(dat.cut$wm))
-names(glm.spl) <- c("l.obs", "z", "stn", "x", "y", "temp", "par", "sal", "oxy", "ice", "wm")
-glm.spl$z.fact <- as.factor(as.integer(glm.spl$z))
-glm.spl$x.fact <- as.factor(glm.spl$x)
-glm.spl$y.fact <- as.factor(glm.spl$y)
-glm.spl <- glm.spl[order(glm.spl$z, glm.spl$x, glm.spl$y), ] #sort by order of rcov structure
-glm.spl$l.obs[glm.spl$l.obs == -Inf] <- NA
-
-#centre and scale covariates to mean = 0 and sd = 1
-#this is required if using na.method = "include" since this sets the missing values to 0
-glm.spl$temp <- scale(glm.spl$temp)
-glm.spl$par  <- scale(glm.spl$par)
-glm.spl$sal  <- scale(glm.spl$sal)
-glm.spl$oxy  <- scale(glm.spl$oxy)
-glm.spl$ice  <- scale(glm.spl$ice)
-glm.spl$oxy  <- scale(glm.spl$oxy)
-
 #fit asreml model
 asreml.full <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
                        spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
@@ -323,14 +319,23 @@ summary(asreml.full)
 
 
 #fit null asreml model
-asreml.null <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) + 
+asreml.null <- asreml(fixed = l.obs ~ z  + temp:wm + oxy + sal, random =~ spl(z, 10) + 
                        spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn,
                      data = glm.spl, na.method.X = "include", workspace = 50000000, aom = T)
-asreml.null <- update(asreml.null)
+summary(asreml.null)
+
+#intercept model
+asreml.null <- asreml(fixed = l.obs ~ z,
+                      data = glm.spl, na.method.X = "include", workspace = 50000000, aom = T)
 summary(asreml.null)
 
 #plot fitted against observed for all stations
 lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.full) ~ glm.spl$z | glm.spl$stn, 
+                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
+
+
+lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.null) ~ glm.spl$z | glm.spl$stn, 
                    outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
@@ -340,9 +345,23 @@ plot(asreml.null$resid, asreml.full$resid, xlim = c(-4, 4), ylim = c(-4, 4))
 plot(asreml.null$fitted, asreml.full$fitted)
 
 
-acf(aggregate(glm.spl$l.obs, by = list(glm.spl$z), FUN = mean, na.rm = T)$x)
+hist(glm.spl$l.obs - residuals(asreml.full))
+hist(glm.spl$l.obs - residuals(asreml.null))
 
-acf(aggregate(residuals(asreml.full$resid), by = list(glm.spl$z), FUN = mean, na.rm = T)$x)
-acf(aggregate(residuals(asreml.null), by = list(glm.spl$z), FUN = mean, na.rm = T)$x)
+
+#calculate R squared
+
+ss_tot <- sum(na.omit(glm.spl$l.obs - rep(aggregate(glm.spl$l.obs, list(glm.spl$stn), FUN = mean, na.rm = T)$x, 125))^2)
+
+
+ss_res_full <- sum(na.omit(asreml.full$resid)^2)
+r_squared_full <- 1 - (ss_res_full/ss_tot)
+
+ss_res_null <- sum(na.omit(asreml.null$resid)^2)
+r_squared_null <- 1 - (ss_res_null/ss_tot)
+
+dat <- cbind(glm.spl$l.obs, fitted(asreml.full))
+dat <- na.omit(dat)
+KL.divergence(dat[, 1], dat[, 2], k = 1)
 
 
