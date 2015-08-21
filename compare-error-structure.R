@@ -97,7 +97,7 @@ summary(asreml.full)$varcomp
 
 
 #fit null asreml model
-asreml.null <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+asreml.null <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) + 
                         spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, data = glm.spl,
                       na.method.X = "include", workspace = 50000000, aom = T)
 summary(asreml.null)$varcomp
@@ -155,9 +155,8 @@ b <- matrix(0, nrow = 125, ncol = 1)
 for (i in unique(glm.spl$stn)) {
   b <- cbind(b, acf(na.omit(residuals(asreml.full)[glm.spl$stn == i]), plot=FALSE, lag.max = 125)$acf)
 }
-
 plot(seq(2, 250, by = 2), rowMeans(a), type = "l", ylim = c(-0.5, 1), xlab = "depth lag distance (m)", ylab = "mean autocorrelation across all stations")
-points(seq(2, 250, by = 2),rowMeans(b), type = "l", lty = 2)
+points(seq(2, 250, by = 2), rowMeans(b), type = "l", lty = 2)
 legend("bottomright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n")
 
 
@@ -183,13 +182,13 @@ legend("bottomright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty
 
 #y
 dat <- cbind(residuals(asreml.null), glm.spl$z, round(glm.spl$y))
-a <- matrix(0, nrow = 10, ncol = 1)
+a <- matrix(0, nrow = 25, ncol = 1)
 for (i in unique(glm.spl$z)) {
   d <- dat[dat[, 2] == i, ]
   a <- cbind(a, acf(na.omit(d[order(d[, 3]), 1]))$acf)
 }
 dat <- cbind(residuals(asreml.full), glm.spl$z, round(glm.spl$y))
-b <- matrix(0, nrow = 10, ncol = 1)
+b <- matrix(0, nrow = 25, ncol = 1)
 for (i in unique(glm.spl$z)) {
   d <- dat[dat[, 2] == i, ]
   b <- cbind(b, acf(na.omit(d[order(d[, 3]), 1]))$acf)
@@ -197,5 +196,17 @@ for (i in unique(glm.spl$z)) {
 plot(rowMeans(a), type = "l", ylim = c(-0.5, 1), xlab = "longitude lag distance (100km)", ylab = "mean autocorrelation across all stations")
 points(rowMeans(b), type = "l", lty = 2)
 legend("bottomright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n")
+
+
+
+
+#plot fitted against observed for all stations
+lat.plot <- xyplot(glm.spl$l.obs + asreml.full$linear.predictors + asreml.null$linear.predictors~ glm.spl$z | glm.spl$stn, 
+                   outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
+update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red", "green")))
+
+
+
+
 
 

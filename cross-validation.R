@@ -375,7 +375,7 @@ dropArm <- function(arm, dat, N) {
   
 }
 
-cross_val <- dropArm(arm = survey_arms, dat = glm.spl, N = 3)
+cross_val <- dropArm(arm = survey_arms, dat = glm.spl, N = 6)
 
 cross_val$predicted[is.na(cross_val$observed)] <- NA
 

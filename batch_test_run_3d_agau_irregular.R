@@ -17,14 +17,14 @@ for (i in 1:10) {
   
   asreml.fit <- asreml(fixed = l.obs ~ z + par + temp, random =~ spl(z) + spl(par) + spl(temp) + stn, data = glm.spl, 
                     splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y))
-  
+  asreml.fit <- update(asreml.fit)
 
   #extract variance components
-  stn.sd[i]   <- summary(asreml.fit)$varcomp[2,2]^0.5
-  noise.sd[i] <- summary(asreml.fit)$varcomp[3,2]^0.5
-  z.phi[i]    <- summary(asreml.fit)$varcomp[4,2]
-  x.phi[i]    <- summary(asreml.fit)$varcomp[5,2]
-  y.phi[i]    <- summary(asreml.fit)$varcomp[6,2]
+  stn.sd[i]   <- summary(asreml.fit)$varcomp[4,2]^0.5
+  noise.sd[i] <- summary(asreml.fit)$varcomp[5,2]^0.5
+  z.phi[i]    <- summary(asreml.fit)$varcomp[6,2]
+  x.phi[i]    <- summary(asreml.fit)$varcomp[7,2]
+  y.phi[i]    <- summary(asreml.fit)$varcomp[8,2]
 
   
 }
