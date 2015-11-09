@@ -330,9 +330,9 @@ asreml.null <- asreml(fixed = l.obs ~ z  + temp:wm + oxy + sal, random =~ spl(z,
 summary(asreml.null)
 
 #intercept model
-asreml.null <- asreml(fixed = l.obs ~ z,
+asreml.int <- asreml(fixed = l.obs ~ z,
                       data = glm.spl, na.method.X = "include", workspace = 50000000, aom = T)
-summary(asreml.null)
+summary(asreml.int)
 
 #plot fitted against observed for all stations
 lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.full) ~ glm.spl$z | glm.spl$stn, 
@@ -344,30 +344,22 @@ lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.null) ~ glm.spl$z | glm.spl$stn
                    outer = FALSE, type = "l", xlab = "depth (m)", ylab = "l.fluoro")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
+#AIC values
+source("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/functions_southern_ocean/asremlAIC.R")
+asremlAIC(asreml.full)
+asremlAIC(asreml.null)
+asremlAIC(asreml.int)
 
-
-plot(asreml.null$resid, asreml.full$resid, xlim = c(-4, 4), ylim = c(-4, 4))
-plot(asreml.null$fitted, asreml.full$fitted)
-
-
-hist(glm.spl$l.obs - residuals(asreml.full))
-hist(glm.spl$l.obs - residuals(asreml.null))
-
+#likelihood ratio tests
+1 - pchisq(2 * (asreml.null$loglik - asreml.int$loglik), 1) 
+1 - pchisq(2 * (asreml.full$loglik - asreml.null$loglik), 1) 
 
 #calculate R squared
 
-ss_tot <- sum(na.omit(glm.spl$l.obs - rep(aggregate(glm.spl$l.obs, list(glm.spl$stn), FUN = mean, na.rm = T)$x, 125))^2)
-
-
-ss_res_full <- sum(na.omit(asreml.full$resid)^2)
-r_squared_full <- 1 - (ss_res_full/ss_tot)
-
-ss_res_null <- sum(na.omit(asreml.null$resid)^2)
-r_squared_null <- 1 - (ss_res_null/ss_tot)
-
-dat <- cbind(glm.spl$l.obs, fitted(asreml.full))
-dat <- na.omit(dat)
-KL.divergence(dat[, 1], dat[, 2], k = 1)
+source("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/functions_southern_ocean/calc_asreml_conditional_marginal_Rsquared.R")
+calcRsquared(asreml.int, varStruct = F)
+calcRsquared(asreml.null, rand = "stn", varStruct = F)
+calcRsquared(asreml.full, rand = "stn", varStruct = T)
 
 #------------------------- PLOT FULL AND NULL MODEL ---------------------------#
 
