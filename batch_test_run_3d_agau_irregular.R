@@ -10,7 +10,7 @@ z.phi    <- 0
 x.phi    <- 0
 y.phi    <- 0
 
-for (i in 1:10) {
+for (i in 1:200) {
   
   glm.spl <- simData(noise.sd = 0.45, stn.sd = 0.22, z.phi = 0.35,
                      x.phi = 0.5, y.phi = 0.4)

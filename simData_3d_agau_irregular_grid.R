@@ -12,7 +12,7 @@ simData <- function (noise.sd, stn.sd, z.phi, x.phi, y.phi) {
     
   dat <- read.csv("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data/stn_coordinates.csv", header = T)
   
-  n.station <- length(lat)
+  n.station <- length(unique(dat$station))
   
   #get latitude and longitude for each station
   lat  <- dat$latitude
