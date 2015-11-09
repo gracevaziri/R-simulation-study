@@ -177,7 +177,8 @@ ggplot(bubble_dat, guide = FALSE) +
 
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
 
-par(mfrow = c(1, 2))
+par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(3,2))
+par(oma = c(3, 6, 0, 0))
 
 #temperature
 pred <- predict(asreml.fit, classify = "temp", ignore = "z")
@@ -191,12 +192,12 @@ dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
 plot(temp, ci[, 2], xlab = "temperature (degrees celcius)", ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
-points(temp, ci[, 1], type = "l", lty = 2)
-points(temp, ci[, 3], type = "l", lty = 2)
-
+polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
+points(temp, ci[, 2], lwd = 2, type = "l")
+rug(unique(na.omit(glm.spl$temp)), ticksize = 0.03, side = 1, lwd = 0.5)
 
 #par
-pred <- predict(asreml.fit, classify = "par")
+pred <- predict(asreml.fit, classify = "par", ignore = "z")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
 par <- pred$predictions$pvals["par"]$par
 se <- pred$predictions$pvals["standard.error"]$standard.error
@@ -205,14 +206,14 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(par, ci[, 2], xlab = expression("par" ~ (??E ~ m^{???2} ~ s^{???1})), ylab = "", 
+plot(par, ci[, 2], xlab = expression("par" ~ (mu~E ~ m^{-2} ~ s^{-1})), ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
-points(par, ci[, 1], type = "l", lty = 2)
-points(par, ci[, 3], type = "l", lty = 2)
-
+polygon(c(par, rev(par)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
+points(par, ci[, 2], lwd = 2, type = "l")
+rug(unique(na.omit(glm.spl$par)), ticksize = 0.03, side = 1, lwd = 0.5)
 
 #oxygen
-pred <- predict(asreml.fit, classify = "oxy")
+pred <- predict(asreml.fit, classify = "oxy", ignore = "z")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
 oxy <- pred$predictions$pvals["oxy"]$oxy
 se <- pred$predictions$pvals["standard.error"]$standard.error
@@ -221,11 +222,11 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(oxy, ci[, 2], xlab = expression("dissolved oxygen" ~ (??mol ~ L^{???1})), ylab = "", 
+plot(oxy, ci[, 2], xlab = expression("dissolved oxygen" ~ (mu~mol ~ L^{-1})), ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
-points(oxy, ci[, 1], type = "l", lty = 2)
-points(oxy, ci[, 3], type = "l", lty = 2)
-
+polygon(c(oxy, rev(oxy)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
+points(oxy, ci[, 2], lwd = 2, type = "l")
+rug(unique(na.omit(glm.spl$oxy)), ticksize = 0.03, side = 1, lwd = 0.5)
 
 
 #depth
@@ -240,9 +241,9 @@ dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
 plot(z, ci[, 2], xlab = "depth (m)", ylab = "", 
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
-points(z, ci[, 1], type = "l", lty = 2)
-points(z, ci[, 3], type = "l", lty = 2)
-
+polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
+points(z, ci[, 2], lwd = 2, type = "l")
+rug(unique(na.omit(glm.spl$z)), ticksize = 0.03, side = 1, lwd = 0.5)
 
 #salinity
 pred <- predict(asreml.fit, classify = "sal", ignore = "z")
@@ -256,8 +257,12 @@ dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
 plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", lwd = 2,
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
-points(z, ci[, 1], type = "l", lty = 2)
-points(z, ci[, 3], type = "l", lty = 2)
+polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
+points(z, ci[, 2], lwd = 2, type = "l")
+rug(unique(na.omit(glm.spl$sal)), ticksize = 0.03, side = 1, lwd = 0.5)
+
+mtext(expression(hat(Fl) ~ (mu~g ~ L^{-1})), side = 2, outer = TRUE, line = 2, cex = 2)
+
 
 #-------------------------- CTD VERTICAL PROFILE ------------------------------#
 
