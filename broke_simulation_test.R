@@ -29,9 +29,9 @@ lat  <- dat.cut$lat[duplicated(dat.cut$stn) == FALSE]
 long <- dat.cut$long[duplicated(dat.cut$stn) == FALSE]
 
 #plot location of BROKE-West station with station number overlayed
-plot(long, lat, col = "white", xlab = "longitude", ylab = "latitude")
-text(long, lat, c(2:118))
-title("location of BROKE-West CTD stations")
+plot(long, lat, col = "white", xlab = "longitude", ylab = "latitude", cex.lab = 2)
+text(long, lat, sort(unique(dat.cut$stn)))
+title("location of BROKE-West CTD stations", cex = 2)
 
 
 #find maximum fluorescence depth
@@ -180,7 +180,7 @@ ggplot(bubble_dat, guide = FALSE) +
 par(mfrow = c(1, 2))
 
 #temperature
-pred <- predict(asreml.fit, classify = "temp")
+pred <- predict(asreml.fit, classify = "temp", ignore = "z")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
 temp <- pred$predictions$pvals["temp"]$temp
 se <- pred$predictions$pvals["standard.error"]$standard.error
@@ -245,7 +245,7 @@ points(z, ci[, 3], type = "l", lty = 2)
 
 
 #salinity
-pred <- predict(asreml.fit, classify = "sal")
+pred <- predict(asreml.fit, classify = "sal", ignore = "z")
 pval <- pred$predictions$pvals["predicted.value"]$predicted.value
 z <- pred$predictions$pvals["sal"]$sal
 se <- pred$predictions$pvals["standard.error"]$standard.error
@@ -254,7 +254,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", 
+plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", lwd = 2,
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 points(z, ci[, 1], type = "l", lty = 2)
 points(z, ci[, 3], type = "l", lty = 2)
@@ -363,5 +363,74 @@ r_squared_null <- 1 - (ss_res_null/ss_tot)
 dat <- cbind(glm.spl$l.obs, fitted(asreml.full))
 dat <- na.omit(dat)
 KL.divergence(dat[, 1], dat[, 2], k = 1)
+
+#------------------------- PLOT FULL AND NULL MODEL ---------------------------#
+
+#compares full and null model for salinity and temperature to show overfit splines
+
+par(mfrow = c(1, 2))
+par(oma = c(4, 5, 0, 0)) #make room for y-axis label
+
+#salinity full
+pred <- predict(asreml.full, classify = "sal", ignore = "z")
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+z <- pred$predictions$pvals["sal"]$sal
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", lwd = 2,
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3]) + 0.5), cex.lab = 2, cex.axis = 2)
+polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
+points(z, ci[, 2], lwd = 2, type = "l")
+
+#salinity null
+pred <- predict(asreml.null, classify = "sal", ignore = "z")
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+z <- pred$predictions$pvals["sal"]$sal
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+points(z, ci[, 2], lwd = 2, col = "red", type = "l")
+polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(1, 0, 0, 0.3), border = NA)
+points(z, ci[, 2], lwd = 2, type = "l", col = "red")
+
+#temperature - full
+pred <- predict(asreml.full, classify = "temp", ignore = "z")
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+temp <- pred$predictions$pvals["temp"]$temp
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+plot(temp, ci[, 2], xlab = "temperature (degrees celcius)", ylab = "", lwd = 2,
+     type = "l", ylim = c(min(ci[, 1])-0.1, max(ci[, 3])), cex.lab = 2, cex.axis = 2)
+polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
+points(temp, ci[, 2], lwd = 2, type = "l")
+
+#temperature - null
+pred <- predict(asreml.null, classify = "temp", ignore = "z")
+pval <- pred$predictions$pvals["predicted.value"]$predicted.value
+temp <- pred$predictions$pvals["temp"]$temp
+se <- pred$predictions$pvals["standard.error"]$standard.error
+
+logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
+ci <- exp(logci)
+dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
+
+points(temp, ci[, 2], lwd = 2, type = "l", col = "red")
+polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(1, 0, 0, 0.3), border = NA)
+points(temp, ci[, 2], lwd = 2, type = "l", col = "red")
+
+mtext(expression(hat(Fl) ~ (mu~g ~ L^{-1})), side = 2, outer = TRUE, line = 2, cex = 2)
+
+
 
 
