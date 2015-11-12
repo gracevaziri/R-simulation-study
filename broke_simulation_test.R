@@ -117,23 +117,6 @@ lat.plot <- xyplot(exp(glm.spl$l.obs) + exp(fitted(asreml.fit)) ~ glm.spl$z | gl
                    outer = FALSE, type = "l", xlab = list("depth (m)", cex = 2), ylab = list("l.fluoro", cex = 2), scales = list(cex = 2), cex.axis = 2)
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")), lwd = 3,  cex.axis = 2, cex.lab = 2)
 
-#--------------------------- CHECK AUTOCORRELATION ----------------------------#
-
-#variogram of residuals for model with and without correlation strucutre
-d <- 62
-gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$gamma
-dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.fit)[glm.spl$stn == d])$x
-plot(dist, gamma)
-
-gamma <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.null)[glm.spl$stn == d])$gamma
-dist  <- asreml.variogram(glm.spl$z[glm.spl$stn == d], z = resid(asreml.null)[glm.spl$stn == d])$x
-plot(dist, gamma)
-
-#likelihood ratio test to check whether adding correlation structure works
-1 - pchisq(2 * (asreml.fit$loglik - asreml.null$loglik), 1) 
-
-
-
 #---------------------------------- FIT GAMM -----------------------------------------#
 
 #fit gamm to compare
@@ -355,11 +338,39 @@ asremlAIC(asreml.int)
 1 - pchisq(2 * (asreml.full$loglik - asreml.null$loglik), 1) 
 
 #calculate R squared
-
 source("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/functions_southern_ocean/calc_asreml_conditional_marginal_Rsquared.R")
 calcRsquared(asreml.int, varStruct = F)
 calcRsquared(asreml.null, rand = "stn", varStruct = F)
 calcRsquared(asreml.full, rand = "stn", varStruct = T)
+
+#RMSE at each station to show range in goodness of fit
+rmse_stn <- 0
+for (s in levels(glm.spl$stn)) {
+  rmse_stn[as.numeric(s)] <- sqrt(mean(na.omit(glm.spl$l.obs[glm.spl$stn == s] - asreml.fit$fitted.values[glm.spl$stn == s])^2))
+}
+rmse_stn <- rmse_stn[-1]
+
+par(mar = c(4, 5, 0, 0))
+hist(rmse_stn, main = "", xlab = "RMSE", cex.axis = 2, cex.lab = 2, col = "grey", lwd = 2)
+
+#variogram of residuals for model with and without correlation strucutre
+a <- matrix(NA, nrow = 125, ncol = 118)
+for (i in unique(glm.spl$stn)) {
+  a[, as.numeric(i)] <- acf(residuals(asreml.null)[glm.spl$stn == i], plot=FALSE, lag.max = 125, na.action = na.pass)$acf
+}
+a <- a[, -1]
+
+b <- matrix(NA, nrow = 125, ncol = 118)
+for (i in unique(glm.spl$stn)) {
+  b[, as.numeric(i)] <- acf(residuals(asreml.full)[glm.spl$stn == i], plot=FALSE, lag.max = 125, na.action = na.pass)$acf
+}
+b <- b[, -1]
+
+plot(seq(2, 250, by = 2), rowMeans(a, na.rm = T), type = "l", ylim = c(-0.5, 1), cex.axis = 2, cex.lab = 2,
+     xlab = "depth lag distance (m)", ylab = "mean autocorrelation across all stations")
+points(seq(2, 250, by = 2), rowMeans(b, na.rm = T), type = "l", lty = 2)
+legend("topright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n")
+
 
 #------------------------- PLOT FULL AND NULL MODEL ---------------------------#
 
@@ -427,6 +438,19 @@ polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(1, 0, 0, 0.3), b
 points(temp, ci[, 2], lwd = 2, type = "l", col = "red")
 
 mtext(expression(hat(Fl) ~ (mu~g ~ L^{-1})), side = 2, outer = TRUE, line = 2, cex = 2)
+
+
+#---------------- SUMMARY STATISTICS OF EXPLANATORY VARIABLES -----------------#
+
+exp_var <- glm.spl[, c(2, 6:10)]
+
+stats_tab <- matrix(round(apply(exp_var, 2, mean, na.rm = T), 2), ncol = 1)
+stats_tab <- cbind(stats_tab, round(apply(exp_var, 2, sd, na.rm = T), 3))
+stats_tab <- cbind(stats_tab, round(apply(exp_var, 2, min, na.rm = T), 2))
+stats_tab <- cbind(stats_tab, round(apply(exp_var, 2, max, na.rm = T), 2))
+colnames(stats_tab) <- c("mean", "sd", "min", "max")
+
+
 
 
 
