@@ -51,6 +51,9 @@ points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
 plot(RMSE_full$RMSE_z, RMSE_null$RMSE_z, xlab = "RMSE by depth, full model", ylab = "RMSE by depth, null model", main = "RMSE by depth", pch = 19)
 points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
 
+#histogram of RMSE by station to show range in goodness of fit
+par(mar = c(4, 5, 0, 0))
+hist(RMSE_full$stn, main = "", xlab = "RMSE", cex.axis = 2, cex.lab = 2, col = "grey", lwd = 2)
 
 
 #------------------------------- one RMSE for each depth ----------------------------------#
