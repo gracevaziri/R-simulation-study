@@ -369,7 +369,8 @@ b <- b[, -1]
 plot(seq(2, 250, by = 2), rowMeans(a, na.rm = T), type = "l", ylim = c(-0.5, 1), cex.axis = 2, cex.lab = 2,
      xlab = "depth lag distance (m)", ylab = "mean autocorrelation across all stations")
 points(seq(2, 250, by = 2), rowMeans(b, na.rm = T), type = "l", lty = 2)
-legend("topright", c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n")
+legend(165, 1.1, c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n", cex = 1.5, 
+       pt.cex = 1, y.intersp = 0.5)
 
 
 #------------------------- PLOT FULL AND NULL MODEL ---------------------------#
