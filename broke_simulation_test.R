@@ -152,7 +152,7 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21)+ scale_size_area(max_size = 15) +
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 15) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
