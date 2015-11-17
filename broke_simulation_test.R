@@ -13,6 +13,21 @@ library(mgcv)
 
 names(dat.cut) <- c("survey", "stn", "lat", "long", "start.time", "end.time", "depth", "transmittance", "cond", "temp", "sal", "par", "oxygen", "fluoro", "x2", "ice", "wm")
 
+#source functions
+function_list <- c("gcdHF.R", 
+                   "deg2rad.R", 
+                   "depthFluoroMax.R", 
+                   "distFromStn1.R", 
+                   "calc_asreml_conditional_marginal_Rsquared.R")
+
+for (f in function_list) {
+  
+    source(paste("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/R-functions-southern-ocean/", f, sep = ""))
+  
+}
+
+
+
 #remove null values
 dat.cut$sal[dat.cut$sal == -9] <- NA
 dat.cut$temp[dat.cut$temp == -9] <- NA
@@ -24,7 +39,6 @@ dat.cut$l.fluoro <- log(dat.cut$fluoro)
 dat.cut$l.fluoro[is.nan(dat.cut$l.fluoro)] <- NA
 
 #get latitude and longitude for each station
-n.station <- length(unique(dat.cut$stn))
 lat  <- dat.cut$lat[duplicated(dat.cut$stn) == FALSE]
 long <- dat.cut$long[duplicated(dat.cut$stn) == FALSE]
 
@@ -33,43 +47,13 @@ plot(long, lat, col = "white", xlab = "longitude", ylab = "latitude", cex.lab = 
 text(long, lat, sort(unique(dat.cut$stn)))
 title("location of BROKE-West CTD stations", cex = 2)
 
-
-#find maximum fluorescence depth
-max.depth <- 0
-for (i in 1:length(unique(dat.cut$stn))) {
-  max.depth[i] <- which.max(dat.cut$l.fluoro[dat.cut$stn == unique(dat.cut$stn)[i]])
-}
-dat.cut$max.depth <- rep(unique(dat.cut$profile.depth)[max.depth], each = 125)
-
-
-#function to convert degrees to radians
-deg2rad <- function(deg) {
-  return(deg*pi/180)
-}
-
-#Calculates the distance between two points with radian latitude/longitude using Haversine formula (hf)
-gcd.hf <- function(lat1, long1, lat2, long2) {
-  R <- 6371 # Earth mean radius [km]
-  delta.long <- (long2 - long1)
-  delta.lat <- (lat2 - lat1)
-  a <- sin(delta.lat/2)^2 + cos(lat1) * cos(lat2) * sin(delta.long/2)^2
-  c <- 2 * asin(min(1,sqrt(a)))
-  d = R * c
-  return(d) # Distance in km
-}
+#find depth of fluoro maximum
+max.depth <- depthFluoroMax(dat.cut)
 
 #distance of each station from station 1 in x and y directions
-x <- 0
-y <- 0
-rad_long <- deg2rad(long)
-rad_lat  <- deg2rad(lat)
-top_lat <- deg2rad(max(lat))
-top_long <- deg2rad(max(long))
-for (i in 1:n.station) {
-  x[i] <- gcd.hf(rad_lat[i], top_long, top_lat, top_long)/100    
-  y[i] <- gcd.hf(top_lat, rad_long[i], top_lat, top_long)/100
-}
-
+dist_stn_1 <- distFromStn1(lat, long)
+x <- dist_stn_1$x
+y <- dist_stn_1$y
 
 #data frame
 glm.spl <- data.frame(dat.cut$l.fluoro, dat.cut$depth, as.factor(dat.cut$stn), rep(x, 1, each = length(unique(dat.cut$depth))), rep(y, 1, each = length(unique(dat.cut$depth))), dat.cut$temp, dat.cut$par, dat.cut$sal, dat.cut$oxygen, dat.cut$ice, as.factor(dat.cut$wm))
@@ -338,7 +322,6 @@ asremlAIC(asreml.int)
 1 - pchisq(2 * (asreml.full$loglik - asreml.null$loglik), 1) 
 
 #calculate R squared
-source("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/functions_southern_ocean/calc_asreml_conditional_marginal_Rsquared.R")
 calcRsquared(asreml.int, varStruct = F)
 calcRsquared(asreml.null, rand = "stn", varStruct = F)
 calcRsquared(asreml.full, rand = "stn", varStruct = T)
