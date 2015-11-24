@@ -1,3 +1,5 @@
+#function to simulate data with 2D autocorrelation
+
 simData <- function (n.station, noise.sd, stn.sd, z.phi, x.phi) {
   
   
