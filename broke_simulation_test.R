@@ -71,12 +71,8 @@ glm.spl$l.obs[glm.spl$l.obs == -Inf] <- NA
 
 #centre and scale covariates to mean = 0 and sd = 1
 #this is required if using na.method = "include" since this sets the missing values to 0
-glm.spl$temp <- scale(glm.spl$temp)
-glm.spl$par  <- scale(glm.spl$par)
-glm.spl$sal  <- scale(glm.spl$sal)
-glm.spl$oxy  <- scale(glm.spl$oxy)
-glm.spl$ice  <- scale(glm.spl$ice)
-glm.spl$oxy  <- scale(glm.spl$oxy)
+glm.spl <- cbind(glm.spl[, c(1:5, 11:14)], apply(glm.spl[, c(6:10)], 2, scale))
+
 
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
