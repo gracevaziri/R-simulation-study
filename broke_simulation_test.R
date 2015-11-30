@@ -4,8 +4,13 @@
 #author: Lisa-Marie Harrison
 #date: 18/09/2014
 
-setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data")
-dat.cut <- read.csv(file = "procCTD.csv", header= T)
+if (Sys.info()[4] == "SCI-6246") {
+  setwd(dir = "C:/Users/43439535/Documents/Lisa/phd/Mixed models")
+} else {
+  setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models")
+}
+
+dat.cut <- read.csv(file = "Data/procCTD.csv", header= T)
 library(asreml)
 library(nlme)
 library(lattice)
@@ -22,7 +27,7 @@ function_list <- c("gcdHF.R",
 
 for (f in function_list) {
   
-    source(paste("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/R-functions-southern-ocean/", f, sep = ""))
+    source(paste("R code/R-functions-southern-ocean/", f, sep = ""))
   
 }
 
