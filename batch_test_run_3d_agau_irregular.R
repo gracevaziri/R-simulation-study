@@ -32,28 +32,36 @@ for (i in 1:200) {
 
 dat <- cbind(stn.sd, noise.sd, z.phi, x.phi, y.phi)
 
-dat <- read.csv("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data/3d_ar1_agau_irregular_grid_estimates.csv", header = T)
+if (Sys.info()[4] == "SCI-6246") {
+  setwd(dir = "C:/Users/43439535/Documents/Lisa/phd/Mixed models")
+} else {
+  setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models")
+}
+
+dat <- read.csv("Data/3d_ar1_agau_irregular_grid_estimates.csv", header = T)
 attach(dat)
 
 #plot histogram of every variance component with fitted average and true values overlayed
-par(mfrow = c(2, 3), oma = c(0, 6, 0, 0))
-hist(dat$stn.sd, main = "station random effect", col = "grey", xlab = "", ylab = "", cex.axis = 2, cex.lab = 2, cex.main = 2)
-abline(v = 0.22, col = "red", lwd = 2)
-abline(v = mean(dat$stn.sd), col = "blue", lwd = 2)
-hist(dat$noise.sd, main = "random noise", xlab = "", col = "grey", ylab = "",cex.axis = 2, cex.lab = 2, cex.main = 2)
-abline(v = 0.45, col = "red", lwd = 2)
-abline(v = mean(dat$noise.sd), col = "blue", lwd = 2)
-hist(dat$z.phi, main = "depth correlation", xlab = "", col = "grey", ylab = "",cex.axis = 2, cex.lab = 2, cex.main = 2)
-abline(v = 0.35, col = "red", lwd = 2)
-abline(v = mean(dat$z.phi), col = "blue", lwd = 2)
-hist(dat$x.phi, main = "latitude correlation", xlab = "", col = "grey", ylab = "",cex.axis = 2, cex.lab = 2, cex.main = 2)
-abline(v = 0.5, col = "red", lwd = 2)
-abline(v = mean(dat$x.phi), col = "blue", lwd = 2)
-hist(dat$y.phi, main = "longitude correlation", xlab = "", col = "grey", ylab = "",cex.axis = 2, cex.lab = 2, cex.main = 2)
-abline(v = 0.4, col = "red", lwd = 2)
-abline(v = mean(dat$y.phi), col = "blue", lwd = 2)
+par(mfrow = c(2, 3), oma = c(0, 6, 0, 0), lwd = 2)
+line_width <- 5
+text_size <- 3
+hist(dat$stn.sd, main = "station random effect", xlab = "", ylab = "", cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.22, col = "black", lwd = line_width)
+abline(v = mean(dat$stn.sd), col = "grey50", lwd = line_width)
+hist(dat$noise.sd, main = "random noise", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.45, col = "black", lwd = line_width)
+abline(v = mean(dat$noise.sd), col = "grey50", lwd = line_width)
+hist(dat$z.phi, main = "depth correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.35, col = "black", lwd = line_width)
+abline(v = mean(dat$z.phi), col = "grey50", lwd = line_width)
+hist(dat$x.phi, main = "latitude correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.5, col = "black", lwd = line_width)
+abline(v = mean(dat$x.phi), col = "grey50", lwd = line_width)
+hist(dat$y.phi, main = "longitude correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.4, col = "black", lwd = line_width)
+abline(v = mean(dat$y.phi), col = "grey50", lwd = line_width)
 
-mtext("Frequency", side = 2, outer = TRUE, line = 2, cex = 2)
+mtext("Frequency", side = 2, outer = TRUE, line = 2, cex = text_size)
 
 
 #table of statistics for paper
