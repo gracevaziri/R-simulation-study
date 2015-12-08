@@ -132,17 +132,18 @@ p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, siz
 
 
 #bubble plot of mean fluorescence by station
+pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_2b.pdf")
 res <- aggregate(exp(glm.spl$l.obs), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
 bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 15) +
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 10) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
   theme(legend.title=element_blank(), text = element_text(size=20)) 
-
+dev.off()
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
 
 par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(3,2))
