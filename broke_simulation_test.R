@@ -117,12 +117,13 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 
 
 #bubble plot of mean residuals by station
+pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_2a.pdf")
 res <- aggregate(residuals(asreml.fit), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
 bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=abs(res)), colour="red", fill = "red", shape = 21)+ scale_size_area(max_size = 15) +
+  geom_point(aes(x=long, y=lat, size=abs(res)), colour="red", fill = "red", shape = 21)+ scale_size_area(max_size = 10) +
     scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
@@ -132,7 +133,7 @@ p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) +
         panel.border = element_blank(),
         panel.background = element_blank())
 p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="blue", fill = "blue", shape = 21, add = TRUE)
-
+dev.off()
 
 
 #bubble plot of mean fluorescence by station
