@@ -126,7 +126,11 @@ p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) +
     scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
-  theme(legend.title=element_blank(), text = element_text(size=20)) 
+  theme(legend.title=element_blank(), text = element_text(size=20), axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank())
 p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="blue", fill = "blue", shape = 21, add = TRUE)
 
 
@@ -142,7 +146,11 @@ ggplot(bubble_dat, guide = FALSE) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
-  theme(legend.title=element_blank(), text = element_text(size=20)) 
+  theme(legend.title=element_blank(), text = element_text(size=20), axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
 dev.off()
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
 
