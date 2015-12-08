@@ -42,9 +42,10 @@ dat <- read.csv("Data/3d_ar1_agau_irregular_grid_estimates.csv", header = T)
 attach(dat)
 
 #plot histogram of every variance component with fitted average and true values overlayed
-par(mfrow = c(2, 3), oma = c(0, 6, 0, 0), lwd = 2)
+pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_1.pdf")
+par(mfrow = c(3, 2), oma = c(0, 6, 0, 0), lwd = 2)
 line_width <- 5
-text_size <- 3
+text_size <- 2
 hist(dat$stn.sd, main = "station random effect", xlab = "", ylab = "", cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
 abline(v = 0.22, col = "black", lwd = line_width)
 abline(v = mean(dat$stn.sd), col = "grey50", lwd = line_width)
@@ -62,7 +63,7 @@ abline(v = 0.4, col = "black", lwd = line_width)
 abline(v = mean(dat$y.phi), col = "grey50", lwd = line_width)
 
 mtext("Frequency", side = 2, outer = TRUE, line = 2, cex = text_size)
-
+dev.off()
 
 #table of statistics for paper
 stats_tab <- matrix(round(apply(dat, 2, mean), 2), ncol = 1)
