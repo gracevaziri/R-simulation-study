@@ -3,7 +3,12 @@
 #author: Lisa-Marie Harrison
 #date: 26/02/2015
 
-setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data")
+if (Sys.info()[4] == "SCI-6246") {
+  setwd(dir = "C:/Users/43439535/Documents/Lisa/phd/Mixed models/Data")
+} else {
+  setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data")
+}
+
 full_files <- list.files(pattern = "cross_val_drop_arm.[[:digit:]]{1,}._.[[:digit:]]{1,}.csv")
 null_files <- list.files(pattern = "_null_model.csv")
 
@@ -55,6 +60,7 @@ points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
 par(mar = c(4, 5, 0, 0))
 hist(RMSE_full$stn, main = "", xlab = "RMSE", cex.axis = 2, cex.lab = 2, col = "grey", lwd = 2)
 
+<<<<<<< HEAD
 #bubble plot of RMSE by station to show range in goodness of fit
 res <- RMSE_full$stn[2:length(RMSE_full$stn)]
 bubble_dat <- as.data.frame(cbind(long, lat, res))
@@ -68,6 +74,26 @@ p1 <- ggplot(bubble_dat, guide = FALSE) +
         text = element_text(size=20), axis.text = element_text(colour = "black"),
         axis.line = element_line(colour = "black"), legend.title = element_blank())
 p1
+=======
+#bubble plot of RMSE by station
+pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_6.pdf")
+res <- RMSE_full$stn[2:118]
+bubble_dat <- as.data.frame(cbind(long, lat, res))
+colnames(bubble_dat) <- c("long", "lat", "res")
+
+ggplot(bubble_dat, guide = FALSE) + 
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 10) +
+  scale_x_continuous(name="Longitude") +
+  scale_y_continuous(name="Latitude") +
+  theme_bw() + 
+  theme(legend.title=element_blank(), text = element_text(size=20), axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank())
+dev.off()
+
+>>>>>>> 54616d345b8075804fd027ea84129521d4fda79d
 
 #------------------------------- one RMSE for each depth ----------------------------------#
 

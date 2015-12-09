@@ -118,39 +118,46 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 
 
 #bubble plot of mean residuals by station
+pdf("C:/Users/Lisa/Dropbox/uni/MEE submitted/images/Figure_2a.pdf")
 res <- aggregate(residuals(asreml.fit), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
 bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=abs(res)), colour="darkgrey", fill = "darkgrey", shape = 21)+ scale_size_area(max_size = 15) +
+  geom_point(aes(x=long, y=lat, size=abs(res)), colour="lightgrey", fill = "lightgrey", shape = 21)+ scale_size_area(max_size = 10) +
     scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
-  theme(panel.border = element_blank(), panel.background = element_blank(), 
-        legend.title=element_blank(), text = element_text(size=20),  axis.text = element_text(colour = "black"),
-        axis.line = element_line(colour = "black")) +
-  annotate("text", 30, -60, label = "(a)")
+  theme_bw() + 
+  theme(legend.title=element_blank(), text = element_text(size=20), axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank())
 p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="black", fill = "black", shape = 21, add = TRUE)
-
+dev.off()
 
 
 #bubble plot of mean fluorescence by station
+pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_2b.pdf")
 res <- aggregate(exp(glm.spl$l.obs), by = list(glm.spl$stn), FUN = mean, na.rm = TRUE)$x
 bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
-p1 <- ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "darkgrey")+ scale_size_area(max_size = 15) +
+ggplot(bubble_dat, guide = FALSE) + 
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 10) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
-  theme(panel.border = element_blank(), panel.background = element_blank(), 
-        legend.title=element_blank(), text = element_text(size=20), axis.text = element_text(colour = "black"),
-        axis.line = element_line(colour = "black")) +
-  annotate("text", 30, -60, label = "(b)") 
-  theme(legend.title=element_blank(), text = element_text(size=20)) 
-p1
+  theme_bw() + 
+  theme(legend.title=element_blank(), text = element_text(size=20), axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
+dev.off()
 
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
+
+pdf("C:/Users/Lisa/Dropbox/uni/MEE submitted/images/Figure_3.pdf")
 
 par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(3, 2))
 par(oma = c(3, 6, 0, 0))
@@ -237,7 +244,7 @@ points(z, ci[, 2], lwd = 2, type = "l")
 rug(unique(na.omit(glm.spl$sal)), ticksize = 0.03, side = 1, lwd = 0.5)
 
 mtext(expression(hat(Fl) ~ (mu~g ~ L^{-1})), side = 2, outer = TRUE, line = 2, cex = 2)
-
+dev.off()
 
 #-------------------------- CTD VERTICAL PROFILE ------------------------------#
 
@@ -357,20 +364,23 @@ for (i in unique(glm.spl$stn)) {
 }
 b <- b[, -1]
 
-par(mar = c(5, 5, 2, 2), mfrow = c(1, 2))
+pdf("C:/Users/Lisa/Dropbox/uni/MEE submitted/images/Figure_4.pdf")
+par(mar = c(5, 5, 2, 2), mfrow = c(1, 1))
 plot(seq(2, 250, by = 2), rowMeans(a, na.rm = T), type = "l", ylim = c(-0.5, 1), cex.axis = 2, cex.lab = 2,
-     xlab = "depth lag distance (m)", ylab = "mean ACF", bty = "n")
-points(seq(2, 250, by = 2), rowMeans(b, na.rm = T), type = "l", lty = 2)
-legend(100, 1.1, c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n", cex = 1.5, 
-       pt.cex = 1, y.intersp = 0.5, seg.len=0.5, x.intersp=0.3)
-
+     xlab = "depth lag (m)", ylab = "mean ACF", bty = "n", lwd = 2)
+points(seq(2, 250, by = 2), rowMeans(b, na.rm = T), type = "l", lty = 2, lwd = 2)
+legend(150, 1.1, c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n", cex = 1.5, 
+       pt.cex = 1, y.intersp = 0.8, seg.len=1.5, x.intersp=0.3)
+dev.off()
 
 #------------------------- PLOT FULL AND NULL MODEL ---------------------------#
 
 #compares full and null model for salinity and temperature to show overfit splines
 #graphs need to be rearanged in GIMP to fit journal size requirements
 
-par(mfrow = c(1, 2))
+pdf("C:/Users/Lisa/Dropbox/uni/MEE submitted/images/Figure_5.pdf")
+
+par(mfrow = c(2, 1))
 par(oma = c(0, 5, 0, 0)) #make room for y-axis label
 
 #salinity full
@@ -432,7 +442,7 @@ polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(1, 0, 0, 0.3), b
 points(temp, ci[, 2], lwd = 2, type = "l", col = "red")
 
 mtext(expression(hat(Fl) ~ (mu~g ~ L^{-1})), side = 2, outer = TRUE, line = 2, cex = 2)
-
+dev.off()
 
 #---------------- SUMMARY STATISTICS OF EXPLANATORY VARIABLES -----------------#
 
