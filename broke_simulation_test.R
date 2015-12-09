@@ -15,6 +15,7 @@ library(asreml)
 library(nlme)
 library(lattice)
 library(mgcv)
+library(ggplot2)
 
 names(dat.cut) <- c("survey", "stn", "lat", "long", "start.time", "end.time", "depth", "transmittance", "cond", "temp", "sal", "par", "oxygen", "fluoro", "x2", "ice", "wm")
 
@@ -122,12 +123,14 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=abs(res)), colour="red", fill = "red", shape = 21)+ scale_size_area(max_size = 15) +
+  geom_point(aes(x=long, y=lat, size=abs(res)), colour="darkgrey", fill = "darkgrey", shape = 21)+ scale_size_area(max_size = 15) +
     scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
-  theme_bw() + 
-  theme(legend.title=element_blank(), text = element_text(size=20)) 
-p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="blue", fill = "blue", shape = 21, add = TRUE)
+  theme(panel.border = element_blank(), panel.background = element_blank(), 
+        legend.title=element_blank(), text = element_text(size=20),  axis.text = element_text(colour = "black"),
+        axis.line = element_line(colour = "black")) +
+  annotate("text", 30, -60, label = "(a)")
+p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="black", fill = "black", shape = 21, add = TRUE)
 
 
 
@@ -136,16 +139,20 @@ res <- aggregate(exp(glm.spl$l.obs), by = list(glm.spl$stn), FUN = mean, na.rm =
 bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
-ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 15) +
+p1 <- ggplot(bubble_dat, guide = FALSE) + 
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "darkgrey")+ scale_size_area(max_size = 15) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
-  theme_bw() + 
+  theme(panel.border = element_blank(), panel.background = element_blank(), 
+        legend.title=element_blank(), text = element_text(size=20), axis.text = element_text(colour = "black"),
+        axis.line = element_line(colour = "black")) +
+  annotate("text", 30, -60, label = "(b)") 
   theme(legend.title=element_blank(), text = element_text(size=20)) 
+p1
 
 #-------------------------- AVERAGE PREDICTIONS -------------------------------#
 
-par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(3,2))
+par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(3, 2))
 par(oma = c(3, 6, 0, 0))
 
 #temperature
@@ -158,7 +165,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(temp, ci[, 2], xlab = "temperature (degrees celcius)", ylab = "", 
+plot(temp, ci[, 2], xlab = expression(temperature~(~degree~C)), ylab = "", bty = "n",
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(temp, ci[, 2], lwd = 2, type = "l")
@@ -174,7 +181,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(par, ci[, 2], xlab = expression("par" ~ (mu~E ~ m^{-2} ~ s^{-1})), ylab = "", 
+plot(par, ci[, 2], xlab = expression("par" ~ (mu~E ~ m^{-2} ~ s^{-1})), ylab = "", bty = "n",
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 polygon(c(par, rev(par)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(par, ci[, 2], lwd = 2, type = "l")
@@ -191,7 +198,7 @@ ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
 plot(oxy, ci[, 2], xlab = expression("dissolved oxygen" ~ (mu~mol ~ L^{-1})), ylab = "", 
-     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
+     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2, bty = "n")
 polygon(c(oxy, rev(oxy)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(oxy, ci[, 2], lwd = 2, type = "l")
 rug(unique(na.omit(glm.spl$oxy)), ticksize = 0.03, side = 1, lwd = 0.5)
@@ -207,7 +214,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(z, ci[, 2], xlab = "depth (m)", ylab = "", 
+plot(z, ci[, 2], xlab = "depth (m)", ylab = "", bty = "n",
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(z, ci[, 2], lwd = 2, type = "l")
@@ -223,7 +230,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", lwd = 2,
+plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", lwd = 2, bty = "n",
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(z, ci[, 2], lwd = 2, type = "l")
@@ -337,7 +344,7 @@ rmse_stn <- rmse_stn[-1]
 par(mar = c(4, 5, 0, 0))
 hist(rmse_stn, main = "", xlab = "RMSE", cex.axis = 2, cex.lab = 2, col = "grey", lwd = 2)
 
-#variogram of residuals for model with and without correlation strucutre
+#variogram of residuals for model with and without correlation structure
 a <- matrix(NA, nrow = 125, ncol = 118)
 for (i in unique(glm.spl$stn)) {
   a[, as.numeric(i)] <- acf(residuals(asreml.null)[glm.spl$stn == i], plot=FALSE, lag.max = 125, na.action = na.pass)$acf
@@ -350,20 +357,21 @@ for (i in unique(glm.spl$stn)) {
 }
 b <- b[, -1]
 
-par(mar = c(5, 5, 2, 2))
+par(mar = c(5, 5, 2, 2), mfrow = c(1, 2))
 plot(seq(2, 250, by = 2), rowMeans(a, na.rm = T), type = "l", ylim = c(-0.5, 1), cex.axis = 2, cex.lab = 2,
-     xlab = "depth lag distance (m)", ylab = "mean ACF")
+     xlab = "depth lag distance (m)", ylab = "mean ACF", bty = "n")
 points(seq(2, 250, by = 2), rowMeans(b, na.rm = T), type = "l", lty = 2)
-legend(165, 1.1, c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n", cex = 1.5, 
-       pt.cex = 1, y.intersp = 0.5)
+legend(100, 1.1, c("null model", "full model"), lwd = 2, lty = c(1, 2), bty = "n", cex = 1.5, 
+       pt.cex = 1, y.intersp = 0.5, seg.len=0.5, x.intersp=0.3)
 
 
 #------------------------- PLOT FULL AND NULL MODEL ---------------------------#
 
 #compares full and null model for salinity and temperature to show overfit splines
+#graphs need to be rearanged in GIMP to fit journal size requirements
 
 par(mfrow = c(1, 2))
-par(oma = c(4, 5, 0, 0)) #make room for y-axis label
+par(oma = c(0, 5, 0, 0)) #make room for y-axis label
 
 #salinity full
 pred <- predict(asreml.full, classify = "sal", ignore = "z")
@@ -375,7 +383,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", lwd = 2,
+plot(z, ci[, 2], xlab = "salinity (psu)", ylab = "", lwd = 2, bty = "n",
      type = "l", ylim = c(min(ci[, 1]), max(ci[, 3]) + 0.5), cex.lab = 2, cex.axis = 2)
 polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(z, ci[, 2], lwd = 2, type = "l")
@@ -390,7 +398,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-points(z, ci[, 2], lwd = 2, col = "red", type = "l")
+points(z, ci[, 2], lwd = 2, col = "darkgrey", type = "l")
 polygon(c(z, rev(z)), c(ci[, 1], rev(ci[, 3])), col = rgb(1, 0, 0, 0.3), border = NA)
 points(z, ci[, 2], lwd = 2, type = "l", col = "red")
 
@@ -404,7 +412,7 @@ logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
 ci <- exp(logci)
 dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
 
-plot(temp, ci[, 2], xlab = "temperature (degrees celcius)", ylab = "", lwd = 2,
+plot(temp, ci[, 2], xlab = expression(temperature~(~degree~C)), ylab = "", lwd = 2, bty = "n",
      type = "l", ylim = c(min(ci[, 1])-0.1, max(ci[, 3])), cex.lab = 2, cex.axis = 2)
 polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(temp, ci[, 2], lwd = 2, type = "l")

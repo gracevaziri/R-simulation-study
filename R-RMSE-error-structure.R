@@ -55,6 +55,19 @@ points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
 par(mar = c(4, 5, 0, 0))
 hist(RMSE_full$stn, main = "", xlab = "RMSE", cex.axis = 2, cex.lab = 2, col = "grey", lwd = 2)
 
+#bubble plot of RMSE by station to show range in goodness of fit
+res <- RMSE_full$stn[2:length(RMSE_full$stn)]
+bubble_dat <- as.data.frame(cbind(long, lat, res))
+colnames(bubble_dat) <- c("long", "lat", "res")
+
+p1 <- ggplot(bubble_dat, guide = FALSE) + 
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "darkgrey")+ scale_size_area(max_size = 15) +
+  scale_x_continuous(name="Longitude") +
+  scale_y_continuous(name="Latitude") +
+  theme(panel.border = element_blank(), panel.background = element_blank(), 
+        text = element_text(size=20), axis.text = element_text(colour = "black"),
+        axis.line = element_line(colour = "black"), legend.title = element_blank())
+p1
 
 #------------------------------- one RMSE for each depth ----------------------------------#
 
