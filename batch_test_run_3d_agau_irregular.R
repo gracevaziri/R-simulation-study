@@ -16,15 +16,17 @@ for (i in 1:200) {
   glm.spl <- simData(noise.sd = 0.45, stn.sd = 0.22, z.phi = 0.35,
                      x.phi = 0.5, y.phi = 0.4)
   
-  asreml.fit <- asreml(fixed = l.obs ~ z + par + temp, random =~ spl(z) + spl(par) + spl(temp) + stn, data = glm.spl, 
-                    splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y), trace = F)
-  
-  #if not converged, keep trying
+
+  asreml.fit <- asreml(fixed = l.obs ~ par + temp, random =~ spl(par) + spl(temp) + stn, data = glm.spl, 
+                         splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y), trace = F)
+
+  #if not converged or values changed on last iteration, keep trying
   while (!asreml.fit$converge) {
     asreml.fit <- update(asreml.fit)
   }
   
-    #predict to get SE for temp and par trends
+  
+  #predict to get SE for temp and par trends
   
   #temperature
   pred_temp <- predict(asreml.fit, classify = "temp")
@@ -40,11 +42,11 @@ for (i in 1:200) {
   
   
   #extract variance components
-  stn.sd[i]   <- summary(asreml.fit)$varcomp[4,2]^0.5
-  noise.sd[i] <- summary(asreml.fit)$varcomp[5,2]^0.5
-  z.phi[i]    <- summary(asreml.fit)$varcomp[6,2]
-  x.phi[i]    <- summary(asreml.fit)$varcomp[7,2]
-  y.phi[i]    <- summary(asreml.fit)$varcomp[8,2]
+  stn.sd[i]   <- summary(asreml.fit)$varcomp[3,2]^0.5
+  noise.sd[i] <- summary(asreml.fit)$varcomp[4,2]^0.5
+  z.phi[i]    <- summary(asreml.fit)$varcomp[5,2]
+  x.phi[i]    <- summary(asreml.fit)$varcomp[6,2]
+  y.phi[i]    <- summary(asreml.fit)$varcomp[7,2]
   spline_error[i] <- mean(c(se_temp^2, se_par^2))
 
   #catch situation where spline estimation error variance is unreasonably high
