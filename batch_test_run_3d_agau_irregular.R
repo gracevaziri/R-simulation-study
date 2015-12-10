@@ -18,10 +18,13 @@ for (i in 1:200) {
   
   asreml.fit <- asreml(fixed = l.obs ~ z + par + temp, random =~ spl(z) + spl(par) + spl(temp) + stn, data = glm.spl, 
                     splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y), trace = F)
-  asreml.fit <- update(asreml.fit)
-
   
-  #predict to get SE for temp and par trends
+  #if not converged, keep trying
+  while (!asreml.fit$converge) {
+    asreml.fit <- update(asreml.fit)
+  }
+  
+    #predict to get SE for temp and par trends
   
   #temperature
   pred_temp <- predict(asreml.fit, classify = "temp")
@@ -44,6 +47,11 @@ for (i in 1:200) {
   y.phi[i]    <- summary(asreml.fit)$varcomp[8,2]
   spline_error[i] <- mean(c(se_temp^2, se_par^2))
 
+  #catch situation where spline estimation error variance is unreasonably high
+  if (spline_error[i] > 0.3) {
+    break()
+  }
+  
   print(i)
   
 }
