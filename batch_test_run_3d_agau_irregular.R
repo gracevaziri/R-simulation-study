@@ -9,6 +9,7 @@ noise.sd <- 0
 z.phi    <- 0
 x.phi    <- 0
 y.phi    <- 0
+spline_error <- 0
 
 for (i in 1:200) {
   
@@ -19,18 +20,35 @@ for (i in 1:200) {
                     splinepoints = list(z = seq(0, 250, 25)), rcov=~ ar1(z.fact):agau(x, y), trace = F)
   asreml.fit <- update(asreml.fit)
 
+  
+  #predict to get SE for temp and par trends
+  
+  #temperature
+  pred_temp <- predict(asreml.fit, classify = "temp")
+  pval_temp <- pred_temp$predictions$pvals["predicted.value"]$predicted.value
+  temp      <- pred_temp$predictions$pvals["temp"]$temp
+  se_temp   <- pred_temp$predictions$pvals["standard.error"]$standard.error
+  
+  #par
+  pred_par <- predict(asreml.fit, classify = "par")
+  pval_par <- pred_par$predictions$pvals["predicted.value"]$predicted.value
+  par      <- pred_par$predictions$pvals["par"]$par
+  se_par   <- pred_par$predictions$pvals["standard.error"]$standard.error
+  
+  
   #extract variance components
   stn.sd[i]   <- summary(asreml.fit)$varcomp[4,2]^0.5
   noise.sd[i] <- summary(asreml.fit)$varcomp[5,2]^0.5
   z.phi[i]    <- summary(asreml.fit)$varcomp[6,2]
   x.phi[i]    <- summary(asreml.fit)$varcomp[7,2]
   y.phi[i]    <- summary(asreml.fit)$varcomp[8,2]
+  spline_error[i] <- mean(c(se_temp^2, se_par^2))
 
   print(i)
   
 }
 
-dat <- cbind(stn.sd, noise.sd, z.phi, x.phi, y.phi)
+dat <- cbind(stn.sd, noise.sd, z.phi, x.phi, y.phi, spline_error)
 
 if (Sys.info()[4] == "SCI-6246") {
   setwd(dir = "C:/Users/43439535/Documents/Lisa/phd/Mixed models")
