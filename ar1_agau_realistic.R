@@ -151,6 +151,20 @@ rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau")
 vals
 
 
+#predict to get SE for temp and par trends to check error in spline trend estimation
+
+#temperature
+pred_temp <- predict(asreml.fit, classify = "temp")
+pval_temp <- pred_temp$predictions$pvals["predicted.value"]$predicted.value
+temp      <- pred_temp$predictions$pvals["temp"]$temp
+se_temp   <- pred_temp$predictions$pvals["standard.error"]$standard.error
+
+#par
+pred_par <- predict(asreml.fit, classify = "par")
+pval_par <- pred_par$predictions$pvals["predicted.value"]$predicted.value
+par      <- pred_par$predictions$pvals["par"]$par
+se_par   <- pred_par$predictions$pvals["standard.error"]$standard.error
+
 
 #plot observed vs fitted
 plot(glm.spl$z[glm.spl$stn == 1], exp(glm.spl$l.obs[glm.spl$stn == 1]), xlab = "depth (m)", ylab = "fluorescence", pch = 19)
