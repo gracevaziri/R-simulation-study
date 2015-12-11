@@ -186,8 +186,9 @@ legend("topright", c("actual fluoro", "fitted"), col = c("black", "red"), pch = 
 
 #------------------------------------ GAMM COMPARISION --------------------------------------#
 
-#use tensor interaction to fit 3D autocorrelation. Results are biased
-gamm.fit <- gamm(l.obs ~ s(z) + s(par) + s(temp) + ti(x, y, z), random = list(stn=~1), data = glm.spl)
+#use tensor interaction to fit 3D autocorrelation. Results are biased and non-sensical because a variance component
+#for a spline can't be compared to the input alpha values
+gamm.fit <- gamm(l.obs ~ s(z) + s(par) + s(temp) + te(x, y, z), random = list(stn=~1), data = glm.spl)
 summary(gamm.fit$gam)
 
 vals <- matrix(c(stn.sd, noise.sd, round(as.numeric(VarCorr(gamm.fit$lme)[which(names(VarCorr(gamm.fit$lme)[, 2]) == "(Intercept)"), 2]), 2), round(summary(gamm.fit$lme)[6]$sigma, 2)), ncol = 2)
@@ -195,10 +196,11 @@ colnames(vals) <- c("true", "fitted")
 rownames(vals) <- c("stn", "noise")
 vals
 
-gam.vcomp(gamm.fit$gam)^0.5
+gam.vcomp(gamm.fit$gam)
 
 #plot observed vs fitted
 plot(glm.spl$z[glm.spl$stn == 1], exp(glm.spl$l.obs[glm.spl$stn == 1]), xlab = "depth (m)", ylab = "fluorescence", pch = 19)
 points(glm.spl$z[glm.spl$stn == 1], exp(fitted(gamm.fit$lme)[glm.spl$stn == 1]), col = "red", type = "l", lwd = 2)
 legend("topright", c("observed", "fitted"), col = c("black", "red"), pch = c(19, NA), lwd = c(NA, 2), bty = "n")
+
 
