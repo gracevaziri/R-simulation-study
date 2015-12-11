@@ -17,32 +17,41 @@ if (Sys.info()[4] == "SCI-6246") {
 
 dat <- read.csv("Data/stn_coordinates.csv", header = T) #brokewest coordinates
 
+#get files for sourcing
+file_list <- c("deg2rad.R",
+               "gcdHF.R",
+               "distFromStn1.R")
+
+for (f in file_list) {
+  source(paste("R code/R-functions-southern-ocean/", f, sep = ""))
+}
+
 #get latitude and longitude for each station
 lat  <- dat$latitude
 long <- dat$longitude
 
 n.station <- length(lat)
-noise.sd <- 0.2 #noise sd
-stn.sd   <- 0.05 #sd for random station effect
-z.phi  <- 0.4 #ar1 autocorrelation down z
-x.phi <- 0.5 #gaussian autocorrelation across x
-y.phi <- 0.4 #gaussian autocorrelation across y
+noise.sd  <- 0.2 #noise sd
+stn.sd    <- 0.05 #sd for random station effect
+z.phi     <- 0.4 #ar1 autocorrelation down z
+x.phi     <- 0.5 #gaussian autocorrelation across x
+y.phi     <- 0.4 #gaussian autocorrelation across y
 
-mult <- 1e3
-z <- seq(5, 250, 5) #explanatory variable (depth)
-z.int <- rep(c(1:length(z)), n.station) #explanatory variable (depth)
-stn <- rep(c(1:n.station), 1, each = length(z)) #station number
+mult   <- 1e3
+z      <- seq(5, 250, 5) #explanatory variable (depth)
+z.int  <- rep(c(1:length(z)), n.station) #explanatory variable (depth)
+stn    <- rep(c(1:n.station), 1, each = length(z)) #station number
 stn.re <- rnorm(n.station, mean = 0, sd = stn.sd) #station specific random effect
 
 #------------------------- ADD EXPLANATORY VARIABLES --------------------------#
 
 #par = exponential distribution pdf
 lambda <- 1.5
-par <- lambda*exp(-lambda*(z/50))
+par    <- lambda*exp(-lambda*(z/50))
 
 #temperature = weibull distribution pdf
-k = 1.5
-lam <- 2
+k    <- 1.5
+lam  <- 2
 temp <- (k/lam)*((z/50)/lam)^(k - 1) * exp(-((z/50)/lam)^k)
 
 #calculate response variable
@@ -53,25 +62,6 @@ rho <- 10 * par * temp ##should this be additive or multiplicative?
 
 #random noise matrix
 r.noise <- rnorm(length(lat)*length(z), 0, noise.sd)
-
-#function to convert degrees to radians
-deg2rad <- function(deg) {
-  return(deg*pi/180)
-}
-
-#function to calculate the distance between two points with radian lat/long 
-#Uses the Haversine formula
-gcd.hf <- function(lat1, long1, lat2, long2) {
-  
-  R <- 6371 # Earth mean radius (km)
-  delta.long <- (long2 - long1)
-  delta.lat <- (lat2 - lat1)
-  a <- sin(delta.lat/2)^2 + cos(lat1) * cos(lat2) * sin(delta.long/2)^2
-  c <- 2 * asin(min(1,sqrt(a)))
-  d = R * c
-  return(d) # Returns distance (km)
-  
-}
 
 #calculate distance of each station from each other station in x-direction
 dist_x <- matrix(0, ncol = n.station, nrow = n.station)
@@ -188,7 +178,7 @@ legend("topright", c("actual fluoro", "fitted"), col = c("black", "red"), pch = 
 
 #use tensor interaction to fit 3D autocorrelation. Results are biased and non-sensical because a variance component
 #for a spline can't be compared to the input alpha values
-gamm.fit <- gamm(l.obs ~ s(z) + s(par) + s(temp) + te(x, y, z), random = list(stn=~1), data = glm.spl)
+gamm.fit <- gamm(l.obs ~ s(z) + s(par) + s(temp) + te(x, y, z), random = list(stn=~1), data = glm.spl, method = "REML")
 summary(gamm.fit$gam)
 
 vals <- matrix(c(stn.sd, noise.sd, round(as.numeric(VarCorr(gamm.fit$lme)[which(names(VarCorr(gamm.fit$lme)[, 2]) == "(Intercept)"), 2]), 2), round(summary(gamm.fit$lme)[6]$sigma, 2)), ncol = 2)
@@ -198,9 +188,12 @@ vals
 
 gam.vcomp(gamm.fit$gam)
 
-#plot observed vs fitted
+#plot observed vs fitted for station 1
 plot(glm.spl$z[glm.spl$stn == 1], exp(glm.spl$l.obs[glm.spl$stn == 1]), xlab = "depth (m)", ylab = "fluorescence", pch = 19)
 points(glm.spl$z[glm.spl$stn == 1], exp(fitted(gamm.fit$lme)[glm.spl$stn == 1]), col = "red", type = "l", lwd = 2)
 legend("topright", c("observed", "fitted"), col = c("black", "red"), pch = c(19, NA), lwd = c(NA, 2), bty = "n")
 
+plot(glm.spl$z[glm.spl$stn == 1], rho, xlab = "depth (m)", ylab = "fluorescence", pch = 19)
+points(glm.spl$z[glm.spl$stn == 1], exp(fitted(gamm.fit$lme)[glm.spl$stn == 1]), col = "red", type = "l", lwd = 2)
+legend("topright", c("actual fluoro", "fitted"), col = c("black", "red"), pch = c(19, NA), lwd = c(NA, 2), bty = "n")
 
