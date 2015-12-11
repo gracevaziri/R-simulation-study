@@ -8,7 +8,14 @@
 library(asreml)
 library(mgcv)
 library(fields)
-dat <- read.csv("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/Data/stn_coordinates.csv", header = T) #brokewest coordinates
+
+if (Sys.info()[4] == "SCI-6246") {
+  setwd(dir = "C:/Users/43439535/Documents/Lisa/phd/Mixed models")
+} else {
+  setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models")
+}
+
+dat <- read.csv("Data/stn_coordinates.csv", header = T) #brokewest coordinates
 
 #get latitude and longitude for each station
 lat  <- dat$latitude
@@ -150,7 +157,6 @@ colnames(vals) <- c("true", "fitted")
 rownames(vals) <- c("stn", "noise", "z ar1", "x agau", "y agau")
 vals
 
-
 #predict to get SE for temp and par trends to check error in spline trend estimation
 
 #temperature
@@ -178,10 +184,21 @@ legend("topright", c("actual fluoro", "fitted"), col = c("black", "red"), pch = 
 
 
 
+#------------------------------------ GAMM COMPARISION --------------------------------------#
 
+#use tensor interaction to fit 3D autocorrelation. Results are biased
+gamm.fit <- gamm(l.obs ~ s(z) + s(par) + s(temp) + ti(x, y, z), random = list(stn=~1), data = glm.spl)
+summary(gamm.fit$gam)
 
+vals <- matrix(c(stn.sd, noise.sd, round(as.numeric(VarCorr(gamm.fit$lme)[which(names(VarCorr(gamm.fit$lme)[, 2]) == "(Intercept)"), 2]), 2), round(summary(gamm.fit$lme)[6]$sigma, 2)), ncol = 2)
+colnames(vals) <- c("true", "fitted")
+rownames(vals) <- c("stn", "noise")
+vals
 
+gam.vcomp(gamm.fit$gam)^0.5
 
-
-
+#plot observed vs fitted
+plot(glm.spl$z[glm.spl$stn == 1], exp(glm.spl$l.obs[glm.spl$stn == 1]), xlab = "depth (m)", ylab = "fluorescence", pch = 19)
+points(glm.spl$z[glm.spl$stn == 1], exp(fitted(gamm.fit$lme)[glm.spl$stn == 1]), col = "red", type = "l", lwd = 2)
+legend("topright", c("observed", "fitted"), col = c("black", "red"), pch = c(19, NA), lwd = c(NA, 2), bty = "n")
 
