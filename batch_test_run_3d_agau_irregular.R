@@ -30,7 +30,7 @@ for (i in 1:200) {
   #predict to get SE for temp and par trends
   
   #temperature
-  pred_temp <- predict(asreml.fit, classify = "temp")
+  pred_temp <- predict(asreml.fit, classify = "temp:par")
   pval_temp <- pred_temp$predictions$pvals["predicted.value"]$predicted.value
   temp      <- pred_temp$predictions$pvals["temp"]$temp
   se_temp   <- pred_temp$predictions$pvals["standard.error"]$standard.error
@@ -48,13 +48,8 @@ for (i in 1:200) {
   z.phi[i]    <- summary(asreml.fit)$varcomp[6,2]
   x.phi[i]    <- summary(asreml.fit)$varcomp[7,2]
   y.phi[i]    <- summary(asreml.fit)$varcomp[8,2]
-  spline_error[i] <- mean(c(se_temp^2, se_par^2))
+  spline_error[i] <- mean(se_temp^2) + mean(se_par^2)
 
-  #catch situation where spline estimation error variance is unreasonably high
-  if (spline_error[i] > 0.3) {
-    break()
-  }
-  
   print(i)
   
 }
@@ -71,14 +66,15 @@ dat <- read.csv("Data/3d_ar1_agau_irregular_grid_estimates.csv", header = T)
 attach(dat)
 
 #plot histogram of every variance component with fitted average and true values overlayed
-pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_1.pdf")
+#pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_1.pdf")
+
 par(mfrow = c(3, 2), oma = c(0, 6, 0, 0), lwd = 2)
 line_width <- 5
 text_size <- 2
 hist(dat$stn.sd, main = "station random effect", xlab = "", ylab = "", cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
 abline(v = 0.22, col = "black", lwd = line_width)
 abline(v = mean(dat$stn.sd), col = "grey50", lwd = line_width)
-hist(dat$noise.sd, main = "random noise", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+hist(dat$noise.sd - dat$spline_error, xlim = c(0.2, 0.6), main = "random noise", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
 abline(v = 0.45, col = "black", lwd = line_width)
 abline(v = mean(dat$noise.sd), col = "grey50", lwd = line_width)
 hist(dat$z.phi, main = "depth correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
@@ -90,9 +86,9 @@ abline(v = mean(dat$x.phi), col = "grey50", lwd = line_width)
 hist(dat$y.phi, main = "longitude correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
 abline(v = 0.4, col = "black", lwd = line_width)
 abline(v = mean(dat$y.phi), col = "grey50", lwd = line_width)
-
 mtext("Frequency", side = 2, outer = TRUE, line = 2, cex = text_size)
-dev.off()
+
+#dev.off()
 
 #table of statistics for paper
 stats_tab <- matrix(round(apply(dat, 2, mean), 2), ncol = 1)
