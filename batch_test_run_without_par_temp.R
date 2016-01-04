@@ -4,13 +4,11 @@ library(asreml)
 source(file = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/R-simulation-study/simData_3d_agau_irregular_grid.R")
 
 #set all values to zero initially
-stn.sd   <- 0
-noise.sd <- 0
-z.phi    <- 0
-x.phi    <- 0
-y.phi    <- 0
-spline_error <- 0
-
+stn.sd.est   <- 0
+noise.sd.est <- 0
+z.phi.est    <- 0
+x.phi.est   <- 0
+y.phi.est   <- 0
 
 for (trial in 1:200) {
   
@@ -142,12 +140,15 @@ for (trial in 1:200) {
   
   
   #extract variance components
-  stn.sd[i]   <- summary(asreml.fit)$varcomp[2,2]^0.5
-  noise.sd[i] <- summary(asreml.fit)$varcomp[3,2]^0.5
-  z.phi[i]    <- summary(asreml.fit)$varcomp[4,2]
-  x.phi[i]    <- summary(asreml.fit)$varcomp[5,2]
-  y.phi[i]    <- summary(asreml.fit)$varcomp[6,2]
+  stn.sd.est[trial]   <- summary(asreml.fit)$varcomp[2,2]^0.5
+  noise.sd.est[trial] <- summary(asreml.fit)$varcomp[3,2]^0.5
+  z.phi.est[trial]    <- summary(asreml.fit)$varcomp[4,2]
+  x.phi.est[trial]    <- summary(asreml.fit)$varcomp[5,2]
+  y.phi.est[trial]    <- summary(asreml.fit)$varcomp[6,2]
 
   print(trial)
   
 }
+
+dat <- cbind(stn.sd.est, noise.sd.est, z.phi.est, x.phi.est, y.phi.est)
+
