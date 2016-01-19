@@ -67,7 +67,7 @@ r.noise <- rnorm(length(lat)*length(z), 0, noise.sd)
 dist_x <- matrix(0, ncol = n.station, nrow = n.station)
 for (i in 1:n.station) {
   for (k in 1:n.station) {
-    dist_x[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[k]), deg2rad(long[i]))/100   
+    dist_x[i, k] <- gcdHF(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[k]), deg2rad(long[i]))/100   
   }
 }
 
@@ -75,7 +75,7 @@ for (i in 1:n.station) {
 dist_y <- matrix(0, ncol = n.station, nrow = n.station)
 for (i in 1:n.station) {
   for (k in 1:n.station) {
-    dist_y[i, k] <- gcd.hf(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[i]), deg2rad(long[k]))/100
+    dist_y[i, k] <- gcdHF(deg2rad(lat[i]), deg2rad(long[i]), deg2rad(lat[i]), deg2rad(long[k]))/100
   }
 }
 
