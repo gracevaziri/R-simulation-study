@@ -28,6 +28,7 @@ r.noise <- rnorm(length(rho)*n.station, 0, noise.sd)
 
 #ar process down z 
 l.obs.z <- NULL
+l.temp <- NULL
 for (i in 1:n.station) {
   for (j in 2:length(z)){
     l.temp[j] <- r.noise[stn == i & z.int == (j - 1)]*phi.true
