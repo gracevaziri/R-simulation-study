@@ -27,7 +27,7 @@ rho <- mult*dnorm(z, mu, sd)/(pnorm(max(z), mu, sd) - pnorm(min(z), mu, sd))
 stn.re <- rnorm(n.station, mean = 0, sd = stn.sd) #station specific random effect
 
 #random noise matrix
-r.noise <- rnorm(length(lat)*length(z), 0, noise.sd)
+r.noise <- rnorm(length(lat)*length(z), 0, noise.sd) #try changing sd to noise.sd^2*(1-z.phi^2)
 
 #function to convert degrees to radians
 deg2rad <- function(deg) {
