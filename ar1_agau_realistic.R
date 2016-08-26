@@ -31,9 +31,9 @@ lat  <- dat$latitude
 long <- dat$longitude
 
 n.station <- length(lat)
-noise.sd  <- 0.2 #noise sd
-stn.sd    <- 0.05 #sd for random station effect
-z.phi     <- 0.4 #ar1 autocorrelation down z
+noise.sd  <- 0.45 #noise sd
+stn.sd    <- 0.22 #sd for random station effect
+z.phi     <- 0.35 #ar1 autocorrelation down z
 x.phi     <- 0.5 #gaussian autocorrelation across x
 y.phi     <- 0.4 #gaussian autocorrelation across y
 
@@ -61,7 +61,7 @@ rho <- 10 * par * temp ##should this be additive or multiplicative?
 #---------------------------- CORRELATED ERRORs -------------------------------#
 
 #random noise matrix
-r.noise <- rnorm(length(lat)*length(z), 0, noise.sd)
+r.noise <- rnorm(length(lat)*length(z), 0, sqrt(noise.sd^2*(1-z.phi^2)))
 
 #calculate distance of each station from each other station in x-direction
 dist_x <- matrix(0, ncol = n.station, nrow = n.station)

@@ -42,7 +42,7 @@ simData <- function (noise.sd, stn.sd, z.phi, x.phi, y.phi) {
   #---------------------------- CORRELATED ERRORs -------------------------------#
   
   #random noise matrix
-  r.noise <- rnorm(length(lat)*length(z), 0, noise.sd)
+  r.noise <- rnorm(length(lat)*length(z), 0, sqrt(noise.sd^2*(1-z.phi^2)))
   
   #function to convert degrees to radians
   deg2rad <- function(deg) {
