@@ -42,7 +42,7 @@ simData <- function (noise.sd, stn.sd, z.phi, x.phi, y.phi) {
   #---------------------------- CORRELATED ERRORs -------------------------------#
   
   #random noise matrix
-  r.noise <- rnorm(length(lat)*length(z), 0, noise.sd)
+  r.noise <- rnorm(length(lat)*length(z), 0, sqrt(noise.sd^2*(1-z.phi^2)))
   
   #function to convert degrees to radians
   deg2rad <- function(deg) {
@@ -111,13 +111,14 @@ simData <- function (noise.sd, stn.sd, z.phi, x.phi, y.phi) {
   
   #form the combined correlated error component
   t.cor <- rep(0, length(r.noise))
+  t.cor[z.int == 1] <- weights_inv %*% matrix(r.noise[z.int == 1], ncol = 1)
   for (k in 2:length(z)) {
+    
     z.data <- matrix(r.noise[z.int == k], ncol = 1) #random noise for all stations at depth k
     xy_error <- weights_inv %*% z.data
-    for (i in 1:n.station) {
-      w <- which(stn == i & z.int == k)
-      t.cor[w] <- t.cor[stn == i & z.int == (k - 1)]*z.phi + xy_error[i] #first component is ar1(z), second is agau(x, y)
-    }
+    w <- which(z.int == k)
+    t.cor[w] <- t.cor[z.int == k - 1]*z.phi + xy_error #first term is ar1(z) and second is agau(x, y)
+    
   }
   
   #------------------------ CALCULATE OBSERVED VALUES ---------------------------#

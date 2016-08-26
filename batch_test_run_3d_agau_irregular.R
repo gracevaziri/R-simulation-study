@@ -11,6 +11,11 @@ x.phi    <- 0
 y.phi    <- 0
 spline_error <- 0
 
+stn_err <- 0
+noise_err <- 0
+z_err <- 0
+x_err <- 0
+y_err <- 0
 
 for (i in 1:200) {
   
@@ -49,12 +54,18 @@ for (i in 1:200) {
   x.phi[i]    <- summary(asreml.fit)$varcomp[7,2]
   y.phi[i]    <- summary(asreml.fit)$varcomp[8,2]
   spline_error[i] <- mean(se_temp^2) + mean(se_par^2)
+  
+  stn_err[i]   <- summary(asreml.fit)$varcomp[4,3]
+  noise_err[i] <- summary(asreml.fit)$varcomp[5,3]
+  z_err[i]    <- summary(asreml.fit)$varcomp[6,3]
+  x_err[i]    <- summary(asreml.fit)$varcomp[7,3]
+  y_err[i]    <- summary(asreml.fit)$varcomp[8,3]
 
   print(i)
   
 }
 
-dat <- cbind(stn.sd, noise.sd, z.phi, x.phi, y.phi, spline_error)
+dat <- cbind(stn.sd, noise.sd, z.phi, x.phi, y.phi, spline_error, stn_err, noise_err, z_err, x_err, y_err)
 
 if (Sys.info()[4] == "SCI-6246") {
   setwd(dir = "C:/Users/43439535/Documents/Lisa/phd/Mixed models")
@@ -74,7 +85,7 @@ text_size <- 2
 hist(dat$stn.sd, main = "station random effect", xlab = "", ylab = "", cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
 abline(v = 0.22, col = "black", lwd = line_width)
 abline(v = mean(dat$stn.sd), col = "grey50", lwd = line_width)
-hist(dat$noise.sd - dat$spline_error, xlim = c(0.2, 0.6), main = "random noise", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+hist(dat$noise.sd, main = "random noise", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
 abline(v = 0.45, col = "black", lwd = line_width)
 abline(v = mean(dat$noise.sd), col = "grey50", lwd = line_width)
 hist(dat$z.phi, main = "depth correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)

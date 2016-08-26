@@ -1,4 +1,5 @@
 #runs a simulation multiple times using the same input values to check the average
+#does not add par and temp to the process in the first place
 #uses ar1 process
 library(asreml)
 source(file = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/R-simulation-study/simData_3d_agau_irregular_grid.R")
@@ -7,8 +8,9 @@ source(file = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/R-
 stn.sd.est   <- 0
 noise.sd.est <- 0
 z.phi.est    <- 0
-x.phi.est   <- 0
-y.phi.est   <- 0
+x.phi.est    <- 0
+y.phi.est    <- 0
+spline_error <- 0
 
 for (trial in 1:200) {
   
@@ -137,18 +139,43 @@ for (trial in 1:200) {
     asreml.fit <- update(asreml.fit)
   }
   
-  
-  
+  #estimate spline error
+  pred_z <- predict(asreml.fit, classify = "z")
+  pval_z <- pred_z$predictions$pvals["predicted.value"]$predicted.value
+  z      <- pred_z$predictions$pvals["z"]$z
+  se_z   <- pred_z$predictions$pvals["standard.error"]$standard.error
+
   #extract variance components
   stn.sd.est[trial]   <- summary(asreml.fit)$varcomp[2,2]^0.5
   noise.sd.est[trial] <- summary(asreml.fit)$varcomp[3,2]^0.5
   z.phi.est[trial]    <- summary(asreml.fit)$varcomp[4,2]
   x.phi.est[trial]    <- summary(asreml.fit)$varcomp[5,2]
   y.phi.est[trial]    <- summary(asreml.fit)$varcomp[6,2]
-
+  spline_error[trial] <- mean(se_z^2)
+  
   print(trial)
   
 }
 
-dat <- cbind(stn.sd.est, noise.sd.est, z.phi.est, x.phi.est, y.phi.est)
+dat <- data.frame(cbind(stn.sd.est, noise.sd.est, z.phi.est, x.phi.est, y.phi.est, spline_error))
 
+
+par(mfrow = c(3, 2), oma = c(0, 6, 0, 0), lwd = 2)
+line_width <- 5
+text_size <- 2
+hist(dat$stn.sd.est, main = "station random effect", xlab = "", ylab = "", cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.05, col = "black", lwd = line_width)
+abline(v = mean(dat$stn.sd.est), col = "grey50", lwd = line_width)
+hist(dat$noise.sd.est, xlim = c(0.2, 0.23), main = "random noise", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.20, col = "black", lwd = line_width)
+abline(v = mean(dat$noise.sd.est), col = "grey50", lwd = line_width)
+hist(dat$z.phi.est, main = "depth correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.4, col = "black", lwd = line_width)
+abline(v = mean(dat$z.phi.est), col = "grey50", lwd = line_width)
+hist(dat$x.phi.est, main = "latitude correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.5, col = "black", lwd = line_width)
+abline(v = mean(dat$x.phi.est), col = "grey50", lwd = line_width)
+hist(dat$y.phi.est, main = "longitude correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
+abline(v = 0.4, col = "black", lwd = line_width)
+abline(v = mean(dat$y.phi.est), col = "grey50", lwd = line_width)
+mtext("Frequency", side = 2, outer = TRUE, line = 2, cex = text_size)
