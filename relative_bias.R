@@ -24,5 +24,15 @@ calcCI <- function (x) {
 
 apply(dat[, 1:5], 2, calcCI)
 
-#coverage probabilities
+#true noise.sd from biased estimate
+
+par(mfrow = c(1, 2))
+hist(dat$noise.sd, xlim = c(0.44, 0.5), main = "Biased_estimate of residual sd", xlab ="")
+abline(v = 0.45, col = "red", lwd = 2)
+
+noise.est <- sqrt(dat$noise.sd^2*(1-dat$z.phi^2))
+hist(noise.est, xlim = c(0.43, 0.5), main = expression(sqrt(paste("Biased_estimate"^2*"(1-", phi["z"]^2*")"))), xlab = "")
+abline(v = 0.45, col = "red", lwd = 2)
+
+
 
