@@ -179,7 +179,7 @@ dev.off()
 
 pdf("C:/Users/Lisa/Dropbox/uni/MEE submitted/images/Figure_3.pdf")
 
-par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(3, 2))
+par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(2, 2))
 par(oma = c(3, 6, 0, 0))
 
 #temperature
@@ -197,22 +197,6 @@ plot(temp, ci[, 2], xlab = expression(temperature~(~degree~C)), ylab = "", bty =
 polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(temp, ci[, 2], lwd = 2, type = "l")
 rug(unique(na.omit(glm.spl$temp)), ticksize = 0.03, side = 1, lwd = 0.5)
-
-#par
-pred <- predict(asreml.fit, classify = "par", ignore = "z")
-pval <- pred$predictions$pvals["predicted.value"]$predicted.value
-par <- pred$predictions$pvals["par"]$par
-se <- pred$predictions$pvals["standard.error"]$standard.error
-
-logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
-ci <- exp(logci)
-dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
-
-plot(par, ci[, 2], xlab = expression("par" ~ (mu~E ~ m^{-2} ~ s^{-1})), ylab = "", bty = "n",
-     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
-polygon(c(par, rev(par)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
-points(par, ci[, 2], lwd = 2, type = "l")
-rug(unique(na.omit(glm.spl$par)), ticksize = 0.03, side = 1, lwd = 0.5)
 
 #oxygen
 pred <- predict(asreml.fit, classify = "oxy", ignore = "z")
@@ -317,7 +301,7 @@ legend(150, 1, c("Current station 2 prediction", "2 degrees celcius temperature 
 #---------------- FIT ASREML MODEL WITHOUT CORRELATION STRUCTURE --------------#
 
 #fit asreml model
-asreml.full <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+asreml.full <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) +  
                        spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000, aom = T)
@@ -332,7 +316,7 @@ asreml.null <- asreml(fixed = l.obs ~ z  + temp:wm + oxy + sal, random =~ spl(z,
 summary(asreml.null)
 
 #intercept model
-asreml.int <- asreml(fixed = l.obs ~ z,
+asreml.int <- asreml(fixed = l.obs ~ 1,
                       data = glm.spl, na.method.X = "include", workspace = 50000000, aom = T)
 summary(asreml.int)
 
@@ -347,7 +331,7 @@ lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.null) ~ glm.spl$z | glm.spl$stn
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
 #AIC values
-source("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/functions_southern_ocean/asremlAIC.R")
+source("R code/R-functions-southern-ocean/asremlAIC.R")
 asremlAIC(asreml.full)
 asremlAIC(asreml.null)
 asremlAIC(asreml.int)
