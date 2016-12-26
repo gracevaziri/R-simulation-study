@@ -78,7 +78,7 @@ glm.spl <- cbind(glm.spl[, c(1:5, 11:14)], apply(glm.spl[, c(6:10)], 2, scale))
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+asreml.fit <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) + 
                         spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
@@ -111,9 +111,22 @@ gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(par) + s(ice), random = lis
 summary(gamm.fit$gam)
 
 
+#----------------------------- PLOTS FOR PAPER -------------------------------#
+
 #plot fitted against observed by station
 lat.plot <- xyplot(glm.spl$l.obs + fitted(gamm.fit$gam) ~ glm.spl$z | glm.spl$stn, outer = FALSE, type = "l")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
+
+#polygon of coastline
+library(maptools)
+library(mapdata)
+library(rgdal)
+
+shape <- readOGR(dsn = ".", layer = "InSAR_GL_Antarctica_v2")
+
+proj4string(shape) <- CRS("+proj=stere +lat_0=-90 +lon_0=0 +lat_ts=-65 +ellps=WGS84 +datum=WGS84 +units=m")
+shape_crop <- as(extent(balleny_poly) + c(-0.2, 0.1, -0.1, 0.2), "SpatialPolygons")
+proj4string(shape_crop) <- CRS(proj4string(balleny_poly))
 
 
 
@@ -124,16 +137,21 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=abs(res)), colour="lightgrey", fill = "lightgrey", shape = 21)+ scale_size_area(max_size = 10) +
-    scale_x_continuous(name="Longitude") +
+  geom_point(aes(x=long, y=lat, size=abs(res)), colour="red", fill = "red", shape = 21)+ scale_size_area(max_size = 10) +
+  geom_polygon(data=fortify(coast_poly, region="id"), aes(x=long, y=lat, group=id), color="black", fill = "grey") +
+  scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
-  theme_bw() + 
-  theme(legend.title=element_blank(), text = element_text(size=20), axis.line = element_line(colour = "black"),
+  guides(color=guide_legend(override.aes=list(fill=NA))) +
+  theme(legend.title=element_blank(), text = element_text(size=20), 
+        legend.background = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
+        axis.line.x = element_line(colour = "black"),
+        axis.line.y = element_line(colour = "black"),
+        axis.text = element_text(color = "black"),
         panel.background = element_blank())
-p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="black", fill = "black", shape = 21, add = TRUE)
+p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="black", fill = "black", shape = 21)
 dev.off()
 
 
@@ -144,7 +162,7 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 10) +
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "black")+ scale_size_area(max_size = 10) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
@@ -152,6 +170,8 @@ ggplot(bubble_dat, guide = FALSE) +
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
+        axis.line.x = element_line(colour = "black"),
+        axis.line.y = element_line(colour = "black"),
         panel.background = element_blank()) 
 dev.off()
 
