@@ -24,7 +24,8 @@ function_list <- c("gcdHF.R",
                    "deg2rad.R", 
                    "depthFluoroMax.R", 
                    "distFromStn1.R", 
-                   "calc_asreml_conditional_marginal_Rsquared.R")
+                   "calc_asreml_conditional_marginal_Rsquared.R",
+                   "asremlAIC.R")
 
 for (f in function_list) {
   
@@ -85,6 +86,10 @@ asreml.fit <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 1
 asreml.fit <- update(asreml.fit)
 summary(asreml.fit)
 
+#assess collinearity using Cholesky decomposition of correlation matrix
+#Values near 0 in the diagonal indicates variables are collinear enough to cause problems
+chol(with(na.omit(glm.spl), cor(data.frame(z, temp, sal, oxy, ice))))
+
 
 #plot fitted against observed for all stations
 lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.fit) ~ glm.spl$z | glm.spl$stn, 
@@ -106,10 +111,9 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 #---------------------------------- FIT GAMM -----------------------------------------#
 
 #fit gamm to compare
-gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(par) + s(ice), random = list(stn =~ 1, x =~1, y =~1), 
+gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(sal) + s(oxy), random = list(stn =~ 1, x =~1, y =~1), 
                  data = glm.spl, correlation = corAR1(0.9, 1 ~ z | x | y))
 summary(gamm.fit$gam)
-
 
 #----------------------------- PLOTS FOR PAPER -------------------------------#
 
@@ -121,13 +125,18 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 library(maptools)
 library(mapdata)
 library(rgdal)
+library(raster)
+library(rgeos)
 
-shape <- readOGR(dsn = ".", layer = "InSAR_GL_Antarctica_v2")
+shape <- readOGR("C:/Users/Lisa/Documents/phd/southern ocean/BROKE-West/polygon", "moa_2004_coastline_v1.1")
 
-proj4string(shape) <- CRS("+proj=stere +lat_0=-90 +lon_0=0 +lat_ts=-65 +ellps=WGS84 +datum=WGS84 +units=m")
-shape_crop <- as(extent(balleny_poly) + c(-0.2, 0.1, -0.1, 0.2), "SpatialPolygons")
-proj4string(shape_crop) <- CRS(proj4string(balleny_poly))
+shape_ll <- spTransform(shape, CRS("+proj=longlat +datum=WGS84"))
 
+shape_crop <- as(extent(rbind(range(bubble_dat$long), range(bubble_dat$lat))), "SpatialPolygons")
+
+proj4string(shape_crop) <- CRS(proj4string(shape_ll))
+
+out <- gIntersection(shape_ll, shape_crop, byid=TRUE)
 
 
 #bubble plot of mean residuals by station
@@ -138,7 +147,8 @@ colnames(bubble_dat) <- c("long", "lat", "res")
 
 p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) + 
   geom_point(aes(x=long, y=lat, size=abs(res)), colour="red", fill = "red", shape = 21)+ scale_size_area(max_size = 10) +
-  geom_polygon(data=fortify(coast_poly, region="id"), aes(x=long, y=lat, group=id), color="black", fill = "grey") +
+  geom_polygon(data=fortify(shape_ll[1, 1]), aes(x=long, y=lat), color = "black", fill = NA) +
+  coord_map(xlim = range(bubble_dat$long) + c(-10, 10), ylim = range(bubble_dat$lat) + c(-2, 1)) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   guides(color=guide_legend(override.aes=list(fill=NA))) +
@@ -152,6 +162,7 @@ p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) +
         axis.text = element_text(color = "black"),
         panel.background = element_blank())
 p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="black", fill = "black", shape = 21)
+
 dev.off()
 
 
