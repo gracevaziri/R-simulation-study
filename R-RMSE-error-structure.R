@@ -81,7 +81,9 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 10) +
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 5) +
+  geom_polygon(data=fortify(shape_ll[1, 1]), aes(x=long, y=lat), color = "black", fill = NA) +
+  coord_map(xlim = range(bubble_dat$long) + c(-10, 10), ylim = range(bubble_dat$lat) + c(-2, 1)) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
@@ -92,6 +94,7 @@ ggplot(bubble_dat, guide = FALSE) +
         axis.line.x = element_line(colour = "black"),
         axis.line.y = element_line(colour = "black"),
         panel.background = element_blank())
+
 dev.off()
 
 
