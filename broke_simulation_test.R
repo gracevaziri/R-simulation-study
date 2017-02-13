@@ -24,7 +24,8 @@ function_list <- c("gcdHF.R",
                    "deg2rad.R", 
                    "depthFluoroMax.R", 
                    "distFromStn1.R", 
-                   "calc_asreml_conditional_marginal_Rsquared.R")
+                   "calc_asreml_conditional_marginal_Rsquared.R",
+                   "asremlAIC.R")
 
 for (f in function_list) {
   
@@ -78,12 +79,16 @@ glm.spl <- cbind(glm.spl[, c(1:5, 11:14)], apply(glm.spl[, c(6:10)], 2, scale))
 #------------------------------- FIT ASREML MODELS -----------------------------------#
 
 #fit asreml model
-asreml.fit <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+asreml.fit <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) + 
                         spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000)
 asreml.fit <- update(asreml.fit)
 summary(asreml.fit)
+
+#assess collinearity using Cholesky decomposition of correlation matrix
+#Values near 0 in the diagonal indicates variables are collinear enough to cause problems
+chol(with(na.omit(glm.spl), cor(data.frame(z, temp, sal, oxy, ice))))
 
 
 #plot fitted against observed for all stations
@@ -106,15 +111,32 @@ update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue",
 #---------------------------------- FIT GAMM -----------------------------------------#
 
 #fit gamm to compare
-gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(par) + s(ice), random = list(stn =~ 1, x =~1, y =~1), 
+gamm.fit <- gamm(l.obs ~ s(z) + s(temp, by = wm) + s(sal) + s(oxy), random = list(stn =~ 1, x =~1, y =~1), 
                  data = glm.spl, correlation = corAR1(0.9, 1 ~ z | x | y))
 summary(gamm.fit$gam)
 
+#----------------------------- PLOTS FOR PAPER -------------------------------#
 
 #plot fitted against observed by station
 lat.plot <- xyplot(glm.spl$l.obs + fitted(gamm.fit$gam) ~ glm.spl$z | glm.spl$stn, outer = FALSE, type = "l")
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
+#polygon of coastline
+library(maptools)
+library(mapdata)
+library(rgdal)
+library(raster)
+library(rgeos)
+
+shape <- readOGR("C:/Users/Lisa/Documents/phd/southern ocean/BROKE-West/polygon", "moa_2004_coastline_v1.1")
+
+shape_ll <- spTransform(shape, CRS("+proj=longlat +datum=WGS84"))
+
+shape_crop <- as(extent(rbind(range(bubble_dat$long), range(bubble_dat$lat))), "SpatialPolygons")
+
+proj4string(shape_crop) <- CRS(proj4string(shape_ll))
+
+out <- gIntersection(shape_ll, shape_crop, byid=TRUE)
 
 
 #bubble plot of mean residuals by station
@@ -124,16 +146,23 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 p1 <- ggplot(bubble_dat[bubble_dat$res < 0, ], guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=abs(res)), colour="lightgrey", fill = "lightgrey", shape = 21)+ scale_size_area(max_size = 10) +
-    scale_x_continuous(name="Longitude") +
+  geom_point(aes(x=long, y=lat, size=abs(res)), colour="red", fill = "red", shape = 21)+ scale_size_area(max_size = 8) +
+  geom_polygon(data=fortify(shape_ll[1, 1]), aes(x=long, y=lat), color = "black", fill = NA) +
+  coord_map(xlim = range(bubble_dat$long) + c(-10, 10), ylim = range(bubble_dat$lat) + c(-2, 1)) +
+  scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
-  theme_bw() + 
-  theme(legend.title=element_blank(), text = element_text(size=20), axis.line = element_line(colour = "black"),
+  guides(color=guide_legend(override.aes=list(fill=NA))) +
+  theme(legend.title=element_blank(), text = element_text(size=20), 
+        legend.background = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
+        axis.line.x = element_line(colour = "black"),
+        axis.line.y = element_line(colour = "black"),
+        axis.text = element_text(color = "black"),
         panel.background = element_blank())
-p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="black", fill = "black", shape = 21, add = TRUE)
+p1 + geom_point(data = bubble_dat[bubble_dat$res >= 0, ], aes(x=long, y=lat, size=abs(res)), colour="black", fill = "black", shape = 21)
+
 dev.off()
 
 
@@ -144,7 +173,9 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 10) +
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "black")+ scale_size_area(max_size = 8) +
+  geom_polygon(data=fortify(shape_ll[1, 1]), aes(x=long, y=lat), color = "black", fill = NA) +
+  coord_map(xlim = range(bubble_dat$long) + c(-10, 10), ylim = range(bubble_dat$lat) + c(-2, 1)) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
@@ -152,6 +183,8 @@ ggplot(bubble_dat, guide = FALSE) +
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
+        axis.line.x = element_line(colour = "black"),
+        axis.line.y = element_line(colour = "black"),
         panel.background = element_blank()) 
 dev.off()
 
@@ -159,7 +192,7 @@ dev.off()
 
 pdf("C:/Users/Lisa/Dropbox/uni/MEE submitted/images/Figure_3.pdf")
 
-par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(3, 2))
+par(mar=c(4.1,4.1,3.1,2.1),mfrow=c(2, 2))
 par(oma = c(3, 6, 0, 0))
 
 #temperature
@@ -177,22 +210,6 @@ plot(temp, ci[, 2], xlab = expression(temperature~(~degree~C)), ylab = "", bty =
 polygon(c(temp, rev(temp)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
 points(temp, ci[, 2], lwd = 2, type = "l")
 rug(unique(na.omit(glm.spl$temp)), ticksize = 0.03, side = 1, lwd = 0.5)
-
-#par
-pred <- predict(asreml.fit, classify = "par", ignore = "z")
-pval <- pred$predictions$pvals["predicted.value"]$predicted.value
-par <- pred$predictions$pvals["par"]$par
-se <- pred$predictions$pvals["standard.error"]$standard.error
-
-logci <- pval + se%*%t(qnorm(c(0.025,0.5,0.975)))
-ci <- exp(logci)
-dimnames(ci)[[2]]<-c("lower95", "est", "upper95")
-
-plot(par, ci[, 2], xlab = expression("par" ~ (mu~E ~ m^{-2} ~ s^{-1})), ylab = "", bty = "n",
-     type = "l", ylim = c(min(ci[, 1]), max(ci[, 3])), cex.lab = 2, cex.axis = 2)
-polygon(c(par, rev(par)), c(ci[, 1], rev(ci[, 3])), col = rgb(0.84, 0.84, 0.84, 1), border = NA)
-points(par, ci[, 2], lwd = 2, type = "l")
-rug(unique(na.omit(glm.spl$par)), ticksize = 0.03, side = 1, lwd = 0.5)
 
 #oxygen
 pred <- predict(asreml.fit, classify = "oxy", ignore = "z")
@@ -297,7 +314,7 @@ legend(150, 1, c("Current station 2 prediction", "2 degrees celcius temperature 
 #---------------- FIT ASREML MODEL WITHOUT CORRELATION STRUCTURE --------------#
 
 #fit asreml model
-asreml.full <- asreml(fixed = l.obs ~ z + par + temp:wm + oxy + sal, random =~ spl(z, 10) + spl(par, 10) + 
+asreml.full <- asreml(fixed = l.obs ~ z + temp:wm + oxy + sal, random =~ spl(z, 10) +  
                        spl(temp, 10):wm + spl(oxy, 10) + spl(sal, 10) + stn, 
                      data = glm.spl, rcov=~ ar1(z.fact):agau(x.fact, y.fact),
                      na.method.X = "include", workspace = 50000000, aom = T)
@@ -312,7 +329,7 @@ asreml.null <- asreml(fixed = l.obs ~ z  + temp:wm + oxy + sal, random =~ spl(z,
 summary(asreml.null)
 
 #intercept model
-asreml.int <- asreml(fixed = l.obs ~ z,
+asreml.int <- asreml(fixed = l.obs ~ 1,
                       data = glm.spl, na.method.X = "include", workspace = 50000000, aom = T)
 summary(asreml.int)
 
@@ -327,7 +344,7 @@ lat.plot <- xyplot(glm.spl$l.obs + fitted(asreml.null) ~ glm.spl$z | glm.spl$stn
 update(lat.plot, par.settings = simpleTheme(lwd = c(2, 1), col = c("dodgerblue", "red")))
 
 #AIC values
-source("C:/Users/Lisa/Documents/phd/southern ocean/Mixed models/R code/functions_southern_ocean/asremlAIC.R")
+source("R code/R-functions-southern-ocean/asremlAIC.R")
 asremlAIC(asreml.full)
 asremlAIC(asreml.null)
 asremlAIC(asreml.int)

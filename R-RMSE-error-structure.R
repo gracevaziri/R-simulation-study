@@ -60,7 +60,6 @@ points(x = c(0, 3), y = c(0, 3), type = "l", col = "red")
 par(mar = c(4, 5, 0, 0))
 hist(RMSE_full$stn, main = "", xlab = "RMSE", cex.axis = 2, cex.lab = 2, col = "grey", lwd = 2)
 
-<<<<<<< HEAD
 #bubble plot of RMSE by station to show range in goodness of fit
 res <- RMSE_full$stn[2:length(RMSE_full$stn)]
 bubble_dat <- as.data.frame(cbind(long, lat, res))
@@ -74,7 +73,7 @@ p1 <- ggplot(bubble_dat, guide = FALSE) +
         text = element_text(size=20), axis.text = element_text(colour = "black"),
         axis.line = element_line(colour = "black"), legend.title = element_blank())
 p1
-=======
+
 #bubble plot of RMSE by station
 pdf("C:/Users/43439535/Dropbox/uni/MEE submitted/images/Figure_6.pdf")
 res <- RMSE_full$stn[2:118]
@@ -82,7 +81,9 @@ bubble_dat <- as.data.frame(cbind(long, lat, res))
 colnames(bubble_dat) <- c("long", "lat", "res")
 
 ggplot(bubble_dat, guide = FALSE) + 
-  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 10) +
+  geom_point(aes(x=long, y=lat, size=res), shape = 21, fill = "grey")+ scale_size_area(max_size = 5) +
+  geom_polygon(data=fortify(shape_ll[1, 1]), aes(x=long, y=lat), color = "black", fill = NA) +
+  coord_map(xlim = range(bubble_dat$long) + c(-10, 10), ylim = range(bubble_dat$lat) + c(-2, 1)) +
   scale_x_continuous(name="Longitude") +
   scale_y_continuous(name="Latitude") +
   theme_bw() + 
@@ -90,10 +91,12 @@ ggplot(bubble_dat, guide = FALSE) +
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
+        axis.line.x = element_line(colour = "black"),
+        axis.line.y = element_line(colour = "black"),
         panel.background = element_blank())
+
 dev.off()
 
->>>>>>> 54616d345b8075804fd027ea84129521d4fda79d
 
 #------------------------------- one RMSE for each depth ----------------------------------#
 
