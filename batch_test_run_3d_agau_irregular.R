@@ -73,7 +73,7 @@ if (Sys.info()[4] == "SCI-6246") {
   setwd(dir = "C:/Users/Lisa/Documents/phd/southern ocean/Mixed models")
 }
 
-dat <- read.csv("Data/3d_ar1_agau_irregular_grid_estimates.csv", header = T)
+dat <- read.csv("C:/Users/43439535/Documents/Lisa/phd/aerial survey/data/pars_fixed.csv", header = T)
 attach(dat)
 
 #plot histogram of every variance component with fitted average and true values overlayed
@@ -83,19 +83,19 @@ par(mfrow = c(3, 2), oma = c(0, 6, 0, 0), lwd = 2)
 line_width <- 5
 text_size <- 2
 hist(dat$stn.sd, main = "station random effect", xlab = "", ylab = "", cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
-abline(v = 0.22, col = "black", lwd = line_width)
+abline(v = 0.22, col = "red", lwd = line_width)
 abline(v = mean(dat$stn.sd), col = "grey50", lwd = line_width)
 hist(dat$noise.sd, main = "random noise", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
-abline(v = 0.45, col = "black", lwd = line_width)
+abline(v = 0.45, col = "red", lwd = line_width)
 abline(v = mean(dat$noise.sd), col = "grey50", lwd = line_width)
 hist(dat$z.phi, main = "depth correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
-abline(v = 0.35, col = "black", lwd = line_width)
+abline(v = 0.35, col = "red", lwd = line_width)
 abline(v = mean(dat$z.phi), col = "grey50", lwd = line_width)
 hist(dat$x.phi, main = "latitude correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
-abline(v = 0.5, col = "black", lwd = line_width)
+abline(v = 0.5, col = "red", lwd = line_width)
 abline(v = mean(dat$x.phi), col = "grey50", lwd = line_width)
 hist(dat$y.phi, main = "longitude correlation", xlab = "", ylab = "",cex.axis = text_size, cex.lab = text_size, cex.main = text_size)
-abline(v = 0.4, col = "black", lwd = line_width)
+abline(v = 0.4, col = "red", lwd = line_width)
 abline(v = mean(dat$y.phi), col = "grey50", lwd = line_width)
 mtext("Frequency", side = 2, outer = TRUE, line = 2, cex = text_size)
 

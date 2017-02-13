@@ -1,4 +1,4 @@
-dat <- read.csv("C:/Users/43439535/Documents/Lisa/phd/Mixed models/Data/pars_new.csv", header = T)
+dat <- read.csv("C:/Users/43439535/Documents/Lisa/phd/Mixed models/Data/pars_fixed.csv", header = T)
 
 
 #true input values
@@ -9,7 +9,7 @@ par_vals <- c("stn.sd" = 0.22, "noise.sd" = 0.45, "z.phi" = 0.35,
 est_mean <- apply(dat[, 1:5], 2, mean)
 
 #relative bias
-est_mean - par_vals
+(est_mean - par_vals)/par_vals
 
 #confidence intervals
 
@@ -25,6 +25,7 @@ calcCI <- function (x) {
 apply(dat[, 1:5], 2, calcCI)
 
 #true noise.sd from biased estimate
+#only works with pars_new.csv
 
 par(mfrow = c(1, 2))
 hist(dat$noise.sd, xlim = c(0.44, 0.5), main = "Biased_estimate of residual sd", xlab ="")
